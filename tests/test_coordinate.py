@@ -66,6 +66,14 @@ class TestGeoCoordinate:
         with pytest.raises(ValueError, match=message):
             GeoCoordinate.from_degrees(np.array([latitude]), np.array([longitude]))
 
+    @pytest.mark.parametrize(
+        ("latitude", "longitude", "message"),
+        [(np.nan, 0.0, "latitude"), (0.0, np.nan, "longitude"), (np.inf, 0.0, "latitude")],
+    )
+    def test_rejects_non_finite(self, latitude: float, longitude: float, message: str) -> None:
+        with pytest.raises(ValueError, match=f"{message} must be finite"):
+            GeoCoordinate.from_degrees(np.array([latitude]), np.array([longitude]))
+
     def test_requires_matching_shape_for_equality(self) -> None:
         single = GeoCoordinate.from_degrees(np.array([1.0]), np.array([2.0]))
         repeated = GeoCoordinate.from_degrees(np.array([1.0, 1.0]), np.array([2.0, 2.0]))

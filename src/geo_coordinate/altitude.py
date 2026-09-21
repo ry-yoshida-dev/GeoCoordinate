@@ -32,6 +32,8 @@ class Altitude:
     def __post_init__(self) -> None:
         if self.value.ndim != 1:
             raise ValueError("Altitude must be a 1D array")
+        if not np.all(np.isfinite(self.value)):
+            raise ValueError("Altitude must be finite")
 
     @classmethod
     def from_magnitude(cls, magnitude: Length, is_below_sea_level: NDArray[np.bool_]) -> Altitude:

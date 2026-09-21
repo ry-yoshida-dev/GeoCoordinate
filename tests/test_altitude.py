@@ -34,6 +34,11 @@ class TestAltitude:
         with pytest.raises(ValueError, match="1D"):
             Altitude(value=np.array([[1.0]]), unit=LengthUnit.M)
 
+    @pytest.mark.parametrize("value", [np.nan, np.inf, -np.inf])
+    def test_rejects_non_finite(self, value: float) -> None:
+        with pytest.raises(ValueError, match="finite"):
+            Altitude(value=np.array([1.0, value]), unit=LengthUnit.M)
+
     def test_requires_matching_shape_for_equality(self) -> None:
         single = Altitude(value=np.array([1.0]), unit=LengthUnit.M)
         repeated = Altitude(value=np.array([1.0, 1.0]), unit=LengthUnit.M)

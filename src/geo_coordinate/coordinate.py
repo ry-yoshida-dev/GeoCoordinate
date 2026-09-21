@@ -44,6 +44,10 @@ class GeoCoordinate:
                 "altitude must have the same length as latitude, "
                 + f"given: {len(self.altitude)} and {len(self.latitude)}"
             )
+        if not np.all(np.isfinite(self.latitude.degree)):
+            raise ValueError("latitude must be finite")
+        if not np.all(np.isfinite(self.longitude.degree)):
+            raise ValueError("longitude must be finite")
         if np.any(np.abs(self.latitude.degree) > 90):
             raise ValueError("latitude must be within [-90, 90] degrees")
         if np.any(np.abs(self.longitude.degree) > 180):
