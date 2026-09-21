@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "geo-coordinate"
+version = "0.0.1"
+authors = [
+  { name = "Ryuto Yoshida" },
+]
+description = "Geographic coordinates built on unit-aware angles and lengths."
+readme = "README.md"
+requires-python = ">=3.12"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy",
+    "units @ git+https://github.com/ry-yoshida-dev/Units.git",
+]
+
+[project.urls]
+Homepage = "https://github.com/ry-yoshida-dev/GeoCoordinate"
+"Bug Tracker" = "https://github.com/ry-yoshida-dev/GeoCoordinate/issues"
+
+[dependency-groups]
+dev = [
+    "basedpyright",
+    "mypy",
+    "pytest",
+    "ruff",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+geo_coordinate = ["py.typed"]
+
+[tool.mypy]
+strict = true
+files = ["src", "tests"]
+
+[tool.basedpyright]
+include = ["src", "tests"]
+typeCheckingMode = "strict"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

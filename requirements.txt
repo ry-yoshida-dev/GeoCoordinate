@@ -1,0 +1,2 @@
+numpy
+units @ git+https://github.com/ry-yoshida-dev/Units.git
