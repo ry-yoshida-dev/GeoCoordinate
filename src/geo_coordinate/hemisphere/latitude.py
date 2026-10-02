@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 
 
@@ -15,6 +17,27 @@ class LatitudeHemisphere(Enum):
 
     NORTH = "N"
     SOUTH = "S"
+
+    @classmethod
+    def from_is_negative(cls, is_negative: bool) -> LatitudeHemisphere:
+        """
+        Return the hemisphere of a signed value from its sign.
+
+        Parameters
+        ----------
+        is_negative : bool
+            Whether the signed value is negative.
+
+        Returns
+        -------
+        LatitudeHemisphere
+            `SOUTH` for negative values, `NORTH` otherwise.
+        """
+        match is_negative:
+            case True:
+                return cls.SOUTH
+            case False:
+                return cls.NORTH
 
     @property
     def is_negative(self) -> bool:

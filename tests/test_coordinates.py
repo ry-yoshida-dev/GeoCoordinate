@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
-from units import LengthUnit
+from units import Angle, AngleUnit, Length, LengthUnit
 
-from geo_coordinate import Altitude, GeoCoordinate, GeoCoordinates
+from geo_coordinate import Altitude, GeoCoordinate, GeoCoordinates, SexagesimalText
 
 
 def make_track() -> GeoCoordinates:
@@ -121,3 +121,89 @@ class TestGeoCoordinates:
         repeated = GeoCoordinates.from_degrees(np.array([1.0, 1.0]), np.array([2.0, 2.0]))
 
         assert single != repeated
+
+    def test_builds_from_sexagesimal(self) -> None:
+        coordinates = GeoCoordinates.from_sexagesimal(
+            latitude=["0°0'0\"N", "1°0'0\"S"], longitude=["1°30'E", "180°W"]
+        )
+
+        assert coordinates == GeoCoordinates.from_degrees(
+            np.array([0.0, -1.0]), np.array([1.5, -180.0])
+        )
+
+    def test_rejects_out_of_range_sexagesimal(self) -> None:
+        with pytest.raises(ValueError, match="latitude must be within"):
+            GeoCoordinates.from_sexagesimal(latitude=["90°0'1\"N"], longitude=["0°E"])
+
+    def test_writes_sexagesimal(self) -> None:
+        text = make_track().to_sexagesimal(0)
+
+        assert text == SexagesimalText(
+            latitude=("0°0'0\"N", "0°0'0\"N", "1°0'0\"N"),
+            longitude=("0°0'0\"E", "1°0'0\"E", "1°0'0\"E"),
+        )
+
+    def test_measures_segment_bearings(self) -> None:
+        bearings = make_track().segment_bearings
+
+        assert bearings.unit == AngleUnit.DEGREE
+        assert bearings.degree == pytest.approx([90.0, 0.0])
+
+    def test_measures_bearings_of_single_coordinate(self) -> None:
+        assert make_track()[:1].segment_bearings.degree.shape == (0,)
+
+    def test_measures_altitude_profile(self) -> None:
+        track = make_track()
+
+        assert track.segment_altitude_changes == Altitude(
+            value=np.array([1.0, 1.0]), unit=LengthUnit.KM
+        )
+        assert track.segment_slant_distances.meter == pytest.approx(
+            [np.hypot(ONE_DEGREE_METER, 1000.0)] * 2
+        )
+        assert track.segment_grades == pytest.approx([1000.0 / ONE_DEGREE_METER] * 2)
+
+    def test_measures_ascent_and_descent(self) -> None:
+        track = GeoCoordinates.from_degrees(
+            latitude=np.array([0.0, 0.001, 0.002, 0.003]),
+            longitude=np.zeros(4),
+            altitude=Altitude(value=np.array([10.0, 15.0, 12.0, -2.0]), unit=LengthUnit.M),
+        )
+
+        assert track.total_ascent.meter.tolist() == pytest.approx([5.0])
+        assert track.total_descent.meter.tolist() == pytest.approx([17.0])
+
+    def test_marks_grade_of_zero_distance_as_nan(self) -> None:
+        track = GeoCoordinates.from_degrees(
+            latitude=np.array([0.0, 0.0]),
+            longitude=np.array([0.0, 0.0]),
+            altitude=Altitude(value=np.array([0.0, 5.0]), unit=LengthUnit.M),
+        )
+
+        assert np.isnan(track.segment_grades).tolist() == [True]
+        assert track.segment_slant_distances.meter == pytest.approx([5.0])
+
+    def test_requires_altitude_for_profile(self) -> None:
+        track = GeoCoordinates.from_degrees(np.array([0.0, 1.0]), np.array([0.0, 0.0]))
+
+        with pytest.raises(ValueError, match="requires coordinates with an altitude"):
+            _ = track.segment_grades
+
+    def test_moves_each_coordinate_to_destination(self) -> None:
+        track = make_track()
+        bearing = Angle(value=np.array([0.0, 90.0, 180.0]), unit=AngleUnit.DEGREE)
+        distance = Length(value=np.array([ONE_DEGREE_METER]), unit=LengthUnit.M)
+
+        destination = track.destination(bearing, distance)
+
+        assert isinstance(destination, GeoCoordinates)
+        assert destination.latitude.degree == pytest.approx([1.0, 0.0, 0.0])
+        assert destination.longitude.degree == pytest.approx([0.0, 2.0, 1.0])
+        assert destination.altitude == track.altitude
+
+    def test_rejects_mismatched_lengths_on_destination(self) -> None:
+        bearing = Angle(value=np.array([0.0, 90.0]), unit=AngleUnit.DEGREE)
+        distance = Length(value=np.array([1.0]), unit=LengthUnit.M)
+
+        with pytest.raises(ValueError, match="same length"):
+            make_track().destination(bearing, distance)

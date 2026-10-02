@@ -7,6 +7,7 @@ from units import Angle, AngleUnit
 
 from .altitude import Altitude
 from .base import GeoCoordinateBase
+from .sexagesimal import SexagesimalNotation
 
 
 @dataclass(eq=False, repr=False)
@@ -58,5 +59,41 @@ class GeoCoordinate(GeoCoordinateBase):
         return cls(
             latitude=Angle(value=np.array([latitude]), unit=AngleUnit.DEGREE),
             longitude=Angle(value=np.array([longitude]), unit=AngleUnit.DEGREE),
+            altitude=altitude,
+        )
+
+    @classmethod
+    def from_sexagesimal(
+        cls,
+        latitude: str,
+        longitude: str,
+        altitude: Altitude | None = None,
+    ) -> GeoCoordinate:
+        """
+        Build a coordinate from degrees, minutes, seconds and hemisphere letters.
+
+        Parameters
+        ----------
+        latitude : str
+            The latitude, such as `35°40'52.27"N`.
+        longitude : str
+            The longitude, such as `139°46'1.56"E`.
+        altitude : Altitude | None
+            The height relative to mean sea level, or None when unknown.
+
+        Returns
+        -------
+        GeoCoordinate
+            The coordinate, with angles in degrees.
+
+        Raises
+        ------
+        ValueError
+            If either text is not valid sexagesimal notation for its axis, or
+            if the angles are out of range.
+        """
+        return cls(
+            latitude=SexagesimalNotation.parse_latitudes([latitude]),
+            longitude=SexagesimalNotation.parse_longitudes([longitude]),
             altitude=altitude,
         )

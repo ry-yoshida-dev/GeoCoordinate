@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from units import Angle, AngleUnit, LengthUnit
+from units import Angle, AngleUnit, Length, LengthUnit
 
 from geo_coordinate import Altitude, GeoCoordinate, GeoCoordinates
 
@@ -40,6 +40,82 @@ class TestGeoCoordinate:
         assert distance.meter.shape == (3,)
         assert distance.meter[0] == pytest.approx(0.0)
         assert distance.meter[1] == pytest.approx(distance.meter[2])
+
+    def test_builds_from_sexagesimal(self) -> None:
+        coordinate = GeoCoordinate.from_sexagesimal("35°40'52.27\"N", "139°46'1.56\"E")
+
+        assert coordinate == GeoCoordinate.from_degrees(
+            35 + 40 / 60 + 52.27 / 3600, 139 + 46 / 60 + 1.56 / 3600
+        )
+        assert coordinate.to_sexagesimal().latitude == ("35°40'52.27\"N",)
+        assert coordinate.to_sexagesimal().longitude == ("139°46'1.56\"E",)
+
+    def test_rejects_swapped_sexagesimal_axes(self) -> None:
+        with pytest.raises(ValueError, match="LatitudeHemisphere"):
+            GeoCoordinate.from_sexagesimal("139°46'1.56\"E", "35°40'52.27\"N")
+
+    @pytest.mark.parametrize(
+        ("latitude", "longitude", "bearing"),
+        [(1.0, 0.0, 0.0), (0.0, 1.0, 90.0), (-1.0, 0.0, 180.0), (0.0, -1.0, 270.0)],
+    )
+    def test_measures_cardinal_bearings(
+        self, latitude: float, longitude: float, bearing: float
+    ) -> None:
+        origin = GeoCoordinate.from_degrees(0.0, 0.0)
+
+        result = origin.initial_bearing_to(GeoCoordinate.from_degrees(latitude, longitude))
+
+        assert result.unit == AngleUnit.DEGREE
+        assert result.degree == pytest.approx(np.array([bearing]))
+
+    def test_measures_bearing_across_antimeridian(self) -> None:
+        west = GeoCoordinate.from_degrees(0.0, 179.0)
+        east = GeoCoordinate.from_degrees(0.0, -179.0)
+
+        assert west.initial_bearing_to(east).degree == pytest.approx(np.array([90.0]))
+
+    def test_measures_zero_bearing_to_itself(self) -> None:
+        origin = GeoCoordinate.from_degrees(35.0, 139.0)
+
+        assert origin.initial_bearing_to(origin).degree.tolist() == [0.0]
+
+    def test_broadcasts_bearing_against_batch(self) -> None:
+        origin = GeoCoordinate.from_degrees(0.0, 0.0)
+        targets = GeoCoordinates.from_degrees(np.array([1.0, 0.0]), np.array([0.0, 1.0]))
+
+        assert origin.initial_bearing_to(targets).degree == pytest.approx([0.0, 90.0])
+
+    def test_reaches_destination_of_bearing_and_distance(self) -> None:
+        tokyo = GeoCoordinate.from_degrees(35.6812, 139.7671)
+        osaka = GeoCoordinate.from_degrees(34.7025, 135.4959)
+
+        destination = tokyo.destination(tokyo.initial_bearing_to(osaka), tokyo.distance_to(osaka))
+
+        assert isinstance(destination, GeoCoordinate)
+        assert destination.distance_to(osaka).meter == pytest.approx(np.array([0.0]), abs=1e-3)
+
+    def test_wraps_destination_across_antimeridian(self) -> None:
+        altitude = Altitude(value=np.array([7.0]), unit=LengthUnit.M)
+        origin = GeoCoordinate.from_degrees(0.0, 179.5, altitude)
+        one_degree = Length(
+            value=np.pi / 180 * GeoCoordinate.EARTH_MEAN_RADIUS.meter, unit=LengthUnit.M
+        )
+
+        destination = origin.destination(
+            Angle(value=np.array([90.0]), unit=AngleUnit.DEGREE), one_degree
+        )
+
+        assert destination.latitude.degree == pytest.approx(np.array([0.0]), abs=1e-9)
+        assert destination.longitude.degree == pytest.approx(np.array([-179.5]))
+        assert destination.altitude == altitude
+
+    def test_rejects_multiple_destinations_for_single_coordinate(self) -> None:
+        origin = GeoCoordinate.from_degrees(0.0, 0.0)
+        bearing = Angle(value=np.array([0.0, 90.0]), unit=AngleUnit.DEGREE)
+        distance = Length(value=np.array([1.0]), unit=LengthUnit.M)
+
+        with pytest.raises(ValueError, match="exactly one"):
+            origin.destination(bearing, distance)
 
     def test_compares_altitude(self) -> None:
         altitude = Altitude(value=np.array([10.0]), unit=LengthUnit.M)

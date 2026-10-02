@@ -8,11 +8,12 @@ Array-based geographic coordinates on top of `units.Angle` and `units.Length`.
 
 | Component | Description |
 |-----------|-------------|
-| [base.py](./base.py) | `GeoCoordinateBase`, shared validation and haversine `distance_to` |
+| [base.py](./base.py) | `GeoCoordinateBase`, shared validation, haversine `distance_to`, bearings, destinations and sexagesimal output |
 | [coordinate.py](./coordinate.py) | `GeoCoordinate`, a single latitude, longitude and optional altitude |
-| [coordinates.py](./coordinates.py) | `GeoCoordinates`, an ordered batch with indexing, concatenation and path distances |
+| [coordinates.py](./coordinates.py) | `GeoCoordinates`, an ordered batch with indexing, concatenation, path distances, bearings and altitude profiles |
 | [altitude.py](./altitude.py) | `Altitude`, signed heights relative to mean sea level |
 | [hemisphere/](./hemisphere/) | `LatitudeHemisphere` and `LongitudeHemisphere` enums of the `N` / `S` and `E` / `W` abbreviations |
+| [sexagesimal/](./sexagesimal/) | `SexagesimalNotation` parsing and formatting of texts such as `35°40'52.27"N` |
 
 ## Altitude
 
@@ -63,12 +64,68 @@ print(station.distance_to(track).meter)  # [0. 3187... 6295...]
 print(track[track.latitude.degree < 35.66])  # GeoCoordinates of the last two
 ```
 
+## Bearing and Destination
+
+`initial_bearing_to(other)` returns the heading at the start of the great
+circle towards `other`, as an `Angle` in degrees within [0, 360) clockwise from
+north, broadcast like `distance_to`. `GeoCoordinates.segment_bearings` gives
+the heading of each segment of a path, of shape (N - 1,).
+
+`destination(bearing, distance)` is the inverse: it travels the given distance
+along the great circle starting at the given bearing, and returns coordinates
+of the same type with longitudes wrapped to [-180, 180) and altitudes carried
+over.
+
+```python
+import numpy as np
+from units import Angle, AngleUnit, Length, LengthUnit
+
+from geo_coordinate import GeoCoordinate
+
+tokyo = GeoCoordinate.from_degrees(35.6812, 139.7671)
+osaka = GeoCoordinate.from_degrees(34.7025, 135.4959)
+
+print(tokyo.initial_bearing_to(osaka).degree)  # [255.57...]
+east = tokyo.destination(
+    Angle(value=np.array([90.0]), unit=AngleUnit.DEGREE),
+    Length(value=np.array([1.0]), unit=LengthUnit.KM),
+)
+```
+
+## Altitude Profile
+
+When a `GeoCoordinates` path carries an altitude, its segments are also
+measured vertically. These members raise `ValueError` without an altitude.
+
+| Member | Shape | Description |
+|--------|-------|-------------|
+| `segment_altitude_changes` | (N - 1,) | Signed `Altitude` changes in meters, positive uphill |
+| `segment_slant_distances` | (N - 1,) | Hypotenuse of the great-circle distance and altitude change |
+| `segment_grades` | (N - 1,) | Altitude change over great-circle distance, NaN for zero distance |
+| `total_ascent` | (1,) | Sum of altitude gains |
+| `total_descent` | (1,) | Sum of altitude losses, as a positive `Length` |
+
+## Sexagesimal Text
+
+`GeoCoordinate.from_sexagesimal` and `GeoCoordinates.from_sexagesimal` parse
+texts such as `35°40'52.27"N` and `139°46'1.56"E`, and `to_sexagesimal`
+writes them back as a `SexagesimalText`. See
+[sexagesimal/README.md](./sexagesimal/README.md) for the accepted notation.
+
+```python
+from geo_coordinate import GeoCoordinate
+
+station = GeoCoordinate.from_sexagesimal("35°40'52.32\"N", "139°46'1.56\"E")
+print(station.latitude.degree)  # [35.6812]
+print(station.to_sexagesimal().longitude)  # ('139°46\'1.56"E',)
+```
+
 ## Hemisphere
 
 Sources such as Exif and NMEA store latitude and longitude as unsigned values
 with a separate `N` / `S` or `E` / `W` letter. `LatitudeHemisphere` and
-`LongitudeHemisphere` parse that letter, and `is_negative` feeds
-`units.DegreesMinutesSeconds`:
+`LongitudeHemisphere` parse that letter, `from_is_negative` derives it from a
+sign, and `is_negative` feeds `units.DegreesMinutesSeconds`:
 
 ```python
 import numpy as np

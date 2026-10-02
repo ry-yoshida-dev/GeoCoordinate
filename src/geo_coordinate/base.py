@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import ClassVar, Self
 
 import numpy as np
-from units import Angle, Length, LengthUnit, NumericArray
+from units import Angle, AngleUnit, Length, LengthUnit, NumericArray
 
 from .altitude import Altitude
+from .sexagesimal import SexagesimalNotation, SexagesimalText
 
 
 @dataclass(eq=False)
@@ -88,17 +89,197 @@ class GeoCoordinateBase(ABC):
         ValueError
             If both sides hold more than one coordinate and differ in length.
         """
-        if len(self) != len(other) and 1 not in (len(self), len(other)):
-            raise ValueError(
-                "coordinates must have the same length or a single element, "
-                + f"given: {len(self)} and {len(other)}"
-            )
+        self._broadcast_length({"coordinates": len(self), "other": len(other)})
         return self._surface_distance(
             self.latitude.radian,
             self.longitude.radian,
             other.latitude.radian,
             other.longitude.radian,
         )
+
+    def initial_bearing_to(self, other: GeoCoordinateBase) -> Angle:
+        """
+        Initial bearing of the great circle towards `other`, clockwise from north.
+
+        The bearing changes along a great circle, so this is the heading at
+        the start. Coincident coordinates have a bearing of zero.
+
+        Parameters
+        ----------
+        other : GeoCoordinateBase
+            The coordinates to head to, element-wise. Either side may hold a
+            single coordinate, which is broadcast against the other.
+
+        Returns
+        -------
+        Angle
+            The bearings in degrees, within [0, 360).
+
+        Raises
+        ------
+        ValueError
+            If both sides hold more than one coordinate and differ in length.
+        """
+        self._broadcast_length({"coordinates": len(self), "other": len(other)})
+        return self._initial_bearing(
+            self.latitude.radian,
+            self.longitude.radian,
+            other.latitude.radian,
+            other.longitude.radian,
+        )
+
+    def destination(self, bearing: Angle, distance: Length) -> Self:
+        """
+        Coordinates reached by travelling along a great circle.
+
+        The altitudes, if any, are carried over unchanged.
+
+        Parameters
+        ----------
+        bearing : Angle
+            The initial bearings, clockwise from north.
+        distance : Length
+            The distances to travel along the surface.
+
+        Returns
+        -------
+        Self
+            The destinations, with angles in degrees and longitudes within
+            [-180, 180). Each argument may hold a single element, which is
+            broadcast against the others.
+
+        Raises
+        ------
+        ValueError
+            If the arguments hold more than one element and differ in length,
+            or if the destinations do not fit this coordinate type.
+        """
+        length: int = self._broadcast_length(
+            {
+                "coordinates": len(self),
+                "bearing": len(bearing.value),
+                "distance": len(distance.value),
+            }
+        )
+        latitude_from = self.latitude.radian
+        angular_distance = distance.meter / self.EARTH_MEAN_RADIUS.meter
+        latitude_to = np.arcsin(
+            np.clip(
+                np.sin(latitude_from) * np.cos(angular_distance)
+                + np.cos(latitude_from) * np.sin(angular_distance) * np.cos(bearing.radian),
+                -1,
+                1,
+            )
+        )
+        longitude_to = self.longitude.radian + np.arctan2(
+            np.sin(bearing.radian) * np.sin(angular_distance) * np.cos(latitude_from),
+            np.cos(angular_distance) - np.sin(latitude_from) * np.sin(latitude_to),
+        )
+        longitude_degree: NumericArray = np.mod(np.degrees(longitude_to) + 180, 360) - 180
+        latitude_degree: NumericArray = np.degrees(latitude_to)
+        altitude: Altitude | None = None
+        if self.altitude is not None:
+            altitude = Altitude(
+                value=np.broadcast_to(self.altitude.value, (length,)).copy(),
+                unit=self.altitude.unit,
+            )
+        return type(self)(
+            latitude=Angle(value=latitude_degree, unit=AngleUnit.DEGREE),
+            longitude=Angle(value=longitude_degree, unit=AngleUnit.DEGREE),
+            altitude=altitude,
+        )
+
+    def to_sexagesimal(self, seconds_decimals: int = 2) -> SexagesimalText:
+        """
+        Write the coordinates in degrees, minutes, seconds and hemisphere letters.
+
+        Altitudes are not written.
+
+        Parameters
+        ----------
+        seconds_decimals : int
+            The number of decimals of the seconds, within [0, 6].
+
+        Returns
+        -------
+        SexagesimalText
+            The latitudes and longitudes, such as `35°40'52.27"N` and
+            `139°46'1.56"E`.
+
+        Raises
+        ------
+        ValueError
+            If `seconds_decimals` is outside [0, 6].
+        """
+        return SexagesimalText(
+            latitude=SexagesimalNotation.format_latitudes(self.latitude, seconds_decimals),
+            longitude=SexagesimalNotation.format_longitudes(self.longitude, seconds_decimals),
+        )
+
+    @staticmethod
+    def _broadcast_length(lengths: dict[str, int]) -> int:
+        """
+        Length that arrays of the given lengths broadcast to.
+
+        Parameters
+        ----------
+        lengths : dict[str, int]
+            The lengths of the arrays, keyed by the names used in errors.
+
+        Returns
+        -------
+        int
+            The common length other than one, or one if all lengths are one.
+
+        Raises
+        ------
+        ValueError
+            If more than one distinct length other than one is given.
+        """
+        distinct_lengths: set[int] = {length for length in lengths.values() if length != 1}
+        if len(distinct_lengths) > 1:
+            given: str = ", ".join(f"{name}={length}" for name, length in lengths.items())
+            raise ValueError(
+                f"{', '.join(lengths)} must have the same length or a single element, "
+                + f"given: {given}"
+            )
+        return distinct_lengths.pop() if distinct_lengths else 1
+
+    @staticmethod
+    def _initial_bearing(
+        latitude_from: NumericArray,
+        longitude_from: NumericArray,
+        latitude_to: NumericArray,
+        longitude_to: NumericArray,
+    ) -> Angle:
+        """
+        Initial great-circle bearing between broadcastable arrays of radians.
+
+        Parameters
+        ----------
+        latitude_from : NumericArray
+            The latitudes of the start points in radians.
+        longitude_from : NumericArray
+            The longitudes of the start points in radians.
+        latitude_to : NumericArray
+            The latitudes of the end points in radians.
+        longitude_to : NumericArray
+            The longitudes of the end points in radians.
+
+        Returns
+        -------
+        Angle
+            The bearings in degrees within [0, 360), in the broadcast shape of
+            the inputs.
+        """
+        longitude_difference = longitude_to - longitude_from
+        east_component = np.sin(longitude_difference) * np.cos(latitude_to)
+        north_component = np.cos(latitude_from) * np.sin(latitude_to) - (
+            np.sin(latitude_from) * np.cos(latitude_to) * np.cos(longitude_difference)
+        )
+        wrapped_degree = np.mod(np.degrees(np.arctan2(east_component, north_component)), 360)
+        bearing_degree: NumericArray = np.where(wrapped_degree >= 360, 0.0, wrapped_degree)
+        return Angle(value=bearing_degree, unit=AngleUnit.DEGREE)
 
     @classmethod
     def _surface_distance(
