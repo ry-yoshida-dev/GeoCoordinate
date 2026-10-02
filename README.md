@@ -5,6 +5,7 @@
 GeoCoordinate (`geo_coordinate`) is a Python package for geographic coordinates built on the unit-aware `Angle` and `Length` of [Units](https://github.com/ry-yoshida-dev/Units).
 `GeoCoordinate` holds a single location and `GeoCoordinates` an ordered batch of latitudes, longitudes and optional signed `Altitude`, so a batch of locations is processed with vectorized operations and measured as a path.
 Coordinates are read from and written to sexagesimal text such as `35°40'52.32"N`, and paths are measured by great-circle distances, bearings and altitude profiles.
+The coordinate reference systems they are published in and projected to (`GeodeticCrs` such as JGD2011, the `JapanPlaneRectangularZone`s and `WebMercator`) are defined here as well, so that packages handling GIS data share one definition.
 
 For package-level details, see [src/geo_coordinate/README.md](src/geo_coordinate/README.md).
 

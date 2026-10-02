@@ -13,6 +13,7 @@ Array-based geographic coordinates on top of `units.Angle` and `units.Length`.
 | [coordinates.py](./coordinates.py) | `GeoCoordinates`, an ordered batch with indexing, concatenation, path distances, bearings and altitude profiles |
 | [altitude.py](./altitude.py) | `Altitude`, signed heights relative to mean sea level |
 | [hemisphere/](./hemisphere/) | `LatitudeHemisphere` and `LongitudeHemisphere` enums of the `N` / `S` and `E` / `W` abbreviations |
+| [reference_system/](./reference_system/README.md) | `GeodeticCrs`, `JapanPlaneRectangularZone` and `WebMercator`, the datums and planar projections coordinates are measured in |
 | [sexagesimal/](./sexagesimal/) | `SexagesimalNotation` parsing and formatting of texts such as `35°40'52.27"N` |
 
 ## Altitude
