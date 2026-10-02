@@ -3,7 +3,7 @@
 ## Overview
 
 GeoCoordinate (`geo_coordinate`) is a Python package for geographic coordinates built on the unit-aware `Angle` and `Length` of [Units](https://github.com/ry-yoshida-dev/Units).
-`GeoCoordinate` holds latitudes, longitudes and optional signed `Altitude` as 1D arrays, so a batch of locations is processed with vectorized operations.
+`GeoCoordinate` holds a single location and `GeoCoordinates` an ordered batch of latitudes, longitudes and optional signed `Altitude`, so a batch of locations is processed with vectorized operations and measured as a path.
 
 For package-level details, see [src/geo_coordinate/README.md](src/geo_coordinate/README.md).
 
@@ -33,16 +33,21 @@ pip install -r requirements.txt
 import numpy as np
 from units import Length, LengthUnit
 
-from geo_coordinate import Altitude, GeoCoordinate
+from geo_coordinate import Altitude, GeoCoordinate, GeoCoordinates
 
-tokyo = GeoCoordinate.from_degrees(np.array([35.6812]), np.array([139.7671]))
+tokyo = GeoCoordinate.from_degrees(35.6812, 139.7671)
 osaka = GeoCoordinate.from_degrees(
-    latitude=np.array([34.7025]),
-    longitude=np.array([135.4959]),
-    altitude=Altitude(value=np.array([5.0]), unit=LengthUnit.M),
+    34.7025, 135.4959, Altitude(value=np.array([5.0]), unit=LengthUnit.M)
 )
 
 print(tokyo.distance_to(osaka).km)  # [403.05...]
+
+track = GeoCoordinates.from_degrees(
+    latitude=np.array([35.6812, 35.6586, 35.6295]),
+    longitude=np.array([139.7671, 139.7454, 139.7387]),
+)
+print(track.segment_distances.meter)  # [3187... 3291...]
+print(track.path_length.km)  # [6.47...]
 
 below_sea_level = Altitude.from_magnitude(
     Length(value=np.array([40.5]), unit=LengthUnit.M),
