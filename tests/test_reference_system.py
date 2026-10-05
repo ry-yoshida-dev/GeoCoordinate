@@ -3,6 +3,7 @@ from pyproj import CRS, Transformer
 
 from geo_coordinate import (
     CoordinateReferenceSystem,
+    GeoCoordinate,
     GeodeticCrs,
     JapanPlaneRectangularZone,
     WebMercator,
@@ -83,3 +84,39 @@ class TestWebMercator:
         )
         x, _ = transformer.transform(180.0, 0.0)
         assert x == pytest.approx(projection.half_extent)
+
+
+class TestJapanPlaneRectangularZoneOrigin:
+    def test_origin_latitudes_match_the_epsg_definitions(self) -> None:
+        for zone in JapanPlaneRectangularZone:
+            operation = zone.crs.coordinate_operation
+            assert operation is not None
+            latitude = next(
+                parameter.value
+                for parameter in operation.params
+                if parameter.name == "Latitude of natural origin"
+            )
+            assert zone.origin_latitude.degree[0] == pytest.approx(latitude)
+
+    def test_origin_is_on_the_central_meridian(self) -> None:
+        origin = JapanPlaneRectangularZone.ZONE_9.origin
+        assert origin.latitude.degree[0] == pytest.approx(36.0)
+        assert origin.longitude.degree[0] == pytest.approx(139 + 50 / 60)
+
+    @pytest.mark.parametrize(
+        ("latitude", "longitude", "zone"),
+        [
+            (35.652, 139.541, JapanPlaneRectangularZone.ZONE_9),
+            (43.062, 141.354, JapanPlaneRectangularZone.ZONE_12),
+            (33.590, 130.402, JapanPlaneRectangularZone.ZONE_2),
+            (26.212, 127.681, JapanPlaneRectangularZone.ZONE_15),
+            (34.686, 135.520, JapanPlaneRectangularZone.ZONE_6),
+            (27.094, 142.192, JapanPlaneRectangularZone.ZONE_14),
+        ],
+        ids=["chofu", "sapporo", "fukuoka", "naha", "osaka", "chichijima"],
+    )
+    def test_nearest_zone_is_the_one_assigned_to_the_city(
+        self, latitude: float, longitude: float, zone: JapanPlaneRectangularZone
+    ) -> None:
+        location = GeoCoordinate.from_degrees(latitude, longitude)
+        assert JapanPlaneRectangularZone.nearest_to(location) is zone

@@ -23,7 +23,7 @@ degrees, which `JapanPlaneRectangularZone` provides for surveying and `WebMercat
 |-----------|-------------|
 | [coordinate_reference_system.py](./coordinate_reference_system.py) | `CoordinateReferenceSystem`: the protocol every CRS here satisfies |
 | [geodetic_crs.py](./geodetic_crs.py) | `GeodeticCrs`: Tokyo Datum, JGD2000, JGD2011 and WGS 84 |
-| [japan_plane_rectangular_zone.py](./japan_plane_rectangular_zone.py) | `JapanPlaneRectangularZone`: the nineteen zones of the Japan Plane Rectangular Coordinate System |
+| [japan_plane_rectangular_zone.py](./japan_plane_rectangular_zone.py) | `JapanPlaneRectangularZone`: the nineteen zones of the Japan Plane Rectangular Coordinate System, their origins and the zone nearest to a location |
 | [web_mercator.py](./web_mercator.py) | `WebMercator`: EPSG:3857 (`PSEUDO_MERCATOR`) and the extent of its world square |
 
 ## Examples
@@ -41,4 +41,15 @@ def measure_on(frame: gpd.GeoDataFrame, plane: CoordinateReferenceSystem) -> flo
 zone = JapanPlaneRectangularZone.ZONE_9
 print(zone, zone.geodetic_crs.label)  # EPSG:6677 JGD2011
 print(GeodeticCrs.from_crs(zone.crs))  # None: a plane is not a geodetic CRS
+```
+
+A dataset is measured with little distortion in the zone whose origin is nearest to it.
+`nearest_to` chooses that zone, which near the border of a prefecture may differ from the zone
+the Survey Act assigns:
+
+```python
+from geo_coordinate import GeoCoordinate, JapanPlaneRectangularZone
+
+chofu = GeoCoordinate.from_degrees(35.652, 139.541)
+print(JapanPlaneRectangularZone.nearest_to(chofu))  # EPSG:6677
 ```

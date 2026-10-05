@@ -4,8 +4,9 @@ from enum import IntEnum
 
 import numpy as np
 from pyproj import CRS
-from units import Angle, DegreesMinutesSeconds
+from units import Angle, AngleUnit, DegreesMinutesSeconds
 
+from ..coordinate import GeoCoordinate
 from .geodetic_crs import GeodeticCrs
 
 
@@ -133,6 +134,88 @@ class JapanPlaneRectangularZone(IntEnum):
                 return self._east_longitude(136, 0)
             case JapanPlaneRectangularZone.ZONE_19:
                 return self._east_longitude(154, 0)
+
+    @property
+    def origin_latitude(self) -> Angle:
+        """
+        Return the north latitude of the zone origin.
+
+        Returns
+        -------
+        Angle
+            The latitude at which the northing of the zone is zero.
+        """
+        match self:
+            case (
+                JapanPlaneRectangularZone.ZONE_1
+                | JapanPlaneRectangularZone.ZONE_2
+                | JapanPlaneRectangularZone.ZONE_4
+            ):
+                return self._degrees(33.0)
+            case (
+                JapanPlaneRectangularZone.ZONE_3
+                | JapanPlaneRectangularZone.ZONE_5
+                | JapanPlaneRectangularZone.ZONE_6
+                | JapanPlaneRectangularZone.ZONE_7
+                | JapanPlaneRectangularZone.ZONE_8
+                | JapanPlaneRectangularZone.ZONE_9
+            ):
+                return self._degrees(36.0)
+            case JapanPlaneRectangularZone.ZONE_10:
+                return self._degrees(40.0)
+            case (
+                JapanPlaneRectangularZone.ZONE_11
+                | JapanPlaneRectangularZone.ZONE_12
+                | JapanPlaneRectangularZone.ZONE_13
+            ):
+                return self._degrees(44.0)
+            case (
+                JapanPlaneRectangularZone.ZONE_14
+                | JapanPlaneRectangularZone.ZONE_15
+                | JapanPlaneRectangularZone.ZONE_16
+                | JapanPlaneRectangularZone.ZONE_17
+                | JapanPlaneRectangularZone.ZONE_19
+            ):
+                return self._degrees(26.0)
+            case JapanPlaneRectangularZone.ZONE_18:
+                return self._degrees(20.0)
+
+    @property
+    def origin(self) -> GeoCoordinate:
+        """
+        Return the origin of the zone.
+
+        Returns
+        -------
+        GeoCoordinate
+            The point at `origin_latitude` on `central_meridian`.
+        """
+        return GeoCoordinate(latitude=self.origin_latitude, longitude=self.central_meridian)
+
+    @classmethod
+    def nearest_to(cls, location: GeoCoordinate) -> JapanPlaneRectangularZone:
+        """
+        Choose the zone whose origin is nearest to a location.
+
+        The distance to each zone origin approximates the assignment of the Survey Act,
+        which matches it in most of Japan but follows the borders of prefectures, so the
+        chosen zone may differ from the assigned one near those borders.
+
+        Parameters
+        ----------
+        location : GeoCoordinate
+            The location to measure around, such as the centre of a dataset.
+
+        Returns
+        -------
+        JapanPlaneRectangularZone
+            The zone with the nearest origin; of zones as near, the lowest numbered.
+        """
+        return min(cls, key=lambda zone: float(location.distance_to(zone.origin).meter[0]))
+
+    @staticmethod
+    def _degrees(degrees: float) -> Angle:
+        return Angle(value=np.array([degrees]), unit=AngleUnit.DEGREE)
 
     @staticmethod
     def _east_longitude(degrees: int, minutes: int) -> Angle:
