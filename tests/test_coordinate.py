@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from units import Angle, AngleUnit, Length, LengthUnit
 
-from geo_coordinate import Altitude, GeoCoordinate, GeoCoordinates
+from geo_coordinate import Altitude, Bearing, GeoCoordinate, GeoCoordinates, NorthReference
 
 
 class TestGeoCoordinate:
@@ -65,7 +65,8 @@ class TestGeoCoordinate:
 
         result = origin.initial_bearing_to(GeoCoordinate.from_degrees(latitude, longitude))
 
-        assert result.unit == AngleUnit.DEGREE
+        assert result.angle.unit == AngleUnit.DEGREE
+        assert result.reference is NorthReference.TRUE
         assert result.degree == pytest.approx(np.array([bearing]))
 
     def test_measures_bearing_across_antimeridian(self) -> None:
@@ -101,17 +102,23 @@ class TestGeoCoordinate:
             value=np.pi / 180 * GeoCoordinate.EARTH_MEAN_RADIUS.meter, unit=LengthUnit.M
         )
 
-        destination = origin.destination(
-            Angle(value=np.array([90.0]), unit=AngleUnit.DEGREE), one_degree
-        )
+        destination = origin.destination(Bearing.from_degrees(90.0), one_degree)
 
         assert destination.latitude.degree == pytest.approx(np.array([0.0]), abs=1e-9)
         assert destination.longitude.degree == pytest.approx(np.array([-179.5]))
         assert destination.altitude == altitude
 
+    def test_rejects_destination_of_magnetic_bearing(self) -> None:
+        origin = GeoCoordinate.from_degrees(0.0, 0.0)
+        bearing = Bearing.from_degrees(90.0, NorthReference.MAGNETIC)
+        distance = Length(value=np.array([1.0]), unit=LengthUnit.M)
+
+        with pytest.raises(ValueError, match="true north"):
+            origin.destination(bearing, distance)
+
     def test_rejects_multiple_destinations_for_single_coordinate(self) -> None:
         origin = GeoCoordinate.from_degrees(0.0, 0.0)
-        bearing = Angle(value=np.array([0.0, 90.0]), unit=AngleUnit.DEGREE)
+        bearing = Bearing(angle=Angle(value=np.array([0.0, 90.0]), unit=AngleUnit.DEGREE))
         distance = Length(value=np.array([1.0]), unit=LengthUnit.M)
 
         with pytest.raises(ValueError, match="exactly one"):

@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from units import Angle, AngleUnit, Length, LengthUnit
 
-from geo_coordinate import Altitude, GeoCoordinate, GeoCoordinates, SexagesimalText
+from geo_coordinate import Altitude, Bearing, GeoCoordinate, GeoCoordinates, SexagesimalText
 
 
 def make_track() -> GeoCoordinates:
@@ -146,7 +146,7 @@ class TestGeoCoordinates:
     def test_measures_segment_bearings(self) -> None:
         bearings = make_track().segment_bearings
 
-        assert bearings.unit == AngleUnit.DEGREE
+        assert bearings.angle.unit == AngleUnit.DEGREE
         assert bearings.degree == pytest.approx([90.0, 0.0])
 
     def test_measures_bearings_of_single_coordinate(self) -> None:
@@ -191,7 +191,7 @@ class TestGeoCoordinates:
 
     def test_moves_each_coordinate_to_destination(self) -> None:
         track = make_track()
-        bearing = Angle(value=np.array([0.0, 90.0, 180.0]), unit=AngleUnit.DEGREE)
+        bearing = Bearing(angle=Angle(value=np.array([0.0, 90.0, 180.0]), unit=AngleUnit.DEGREE))
         distance = Length(value=np.array([ONE_DEGREE_METER]), unit=LengthUnit.M)
 
         destination = track.destination(bearing, distance)
@@ -202,7 +202,7 @@ class TestGeoCoordinates:
         assert destination.altitude == track.altitude
 
     def test_rejects_mismatched_lengths_on_destination(self) -> None:
-        bearing = Angle(value=np.array([0.0, 90.0]), unit=AngleUnit.DEGREE)
+        bearing = Bearing(angle=Angle(value=np.array([0.0, 90.0]), unit=AngleUnit.DEGREE))
         distance = Length(value=np.array([1.0]), unit=LengthUnit.M)
 
         with pytest.raises(ValueError, match="same length"):

@@ -10,6 +10,7 @@ from units import Angle, AngleUnit, Length, LengthUnit, NumericArray
 
 from .altitude import Altitude
 from .base import GeoCoordinateBase
+from .bearing import Bearing
 from .coordinate import GeoCoordinate
 from .sexagesimal import SexagesimalNotation
 
@@ -212,15 +213,15 @@ class GeoCoordinates(GeoCoordinateBase):
         return Length(value=total, unit=LengthUnit.M)
 
     @property
-    def segment_bearings(self) -> Angle:
+    def segment_bearings(self) -> Bearing:
         """
         Initial great-circle bearings from each coordinate to the next.
 
         Returns
         -------
-        Angle
-            The bearings in degrees within [0, 360), clockwise from north, of
-            shape (N - 1,), or empty for fewer than two coordinates.
+        Bearing
+            The bearings in degrees within [0, 360), clockwise from true north,
+            of shape (N - 1,), or empty for fewer than two coordinates.
         """
         latitude = self.latitude.radian
         longitude = self.longitude.radian

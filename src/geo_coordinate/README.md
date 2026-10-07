@@ -12,6 +12,7 @@ Array-based geographic coordinates on top of `units.Angle` and `units.Length`.
 | [coordinate.py](./coordinate.py) | `GeoCoordinate`, a single latitude, longitude and optional altitude |
 | [coordinates.py](./coordinates.py) | `GeoCoordinates`, an ordered batch with indexing, concatenation, path distances, bearings and altitude profiles |
 | [altitude.py](./altitude.py) | `Altitude`, signed heights relative to mean sea level |
+| [bearing/](./bearing/README.md) | `Bearing` and `NorthReference`, directions clockwise from true or magnetic north |
 | [hemisphere/](./hemisphere/) | `LatitudeHemisphere` and `LongitudeHemisphere` enums of the `N` / `S` and `E` / `W` abbreviations |
 | [reference_system/](./reference_system/README.md) | `GeodeticCrs`, `JapanPlaneRectangularZone` and `WebMercator`, the datums and planar projections coordinates are measured in |
 | [sexagesimal/](./sexagesimal/) | `SexagesimalNotation` parsing and formatting of texts such as `35°40'52.27"N` |
@@ -68,27 +69,28 @@ print(track[track.latitude.degree < 35.66])  # GeoCoordinates of the last two
 ## Bearing and Destination
 
 `initial_bearing_to(other)` returns the heading at the start of the great
-circle towards `other`, as an `Angle` in degrees within [0, 360) clockwise from
-north, broadcast like `distance_to`. `GeoCoordinates.segment_bearings` gives
+circle towards `other`, as a `Bearing` from true north in degrees within
+[0, 360), broadcast like `distance_to`. `GeoCoordinates.segment_bearings` gives
 the heading of each segment of a path, of shape (N - 1,).
 
 `destination(bearing, distance)` is the inverse: it travels the given distance
 along the great circle starting at the given bearing, and returns coordinates
 of the same type with longitudes wrapped to [-180, 180) and altitudes carried
-over.
+over. A bearing from magnetic north is rejected, since its offset from true
+north, the magnetic declination, depends on place and time.
 
 ```python
 import numpy as np
-from units import Angle, AngleUnit, Length, LengthUnit
+from units import Length, LengthUnit
 
-from geo_coordinate import GeoCoordinate
+from geo_coordinate import Bearing, GeoCoordinate
 
 tokyo = GeoCoordinate.from_degrees(35.6812, 139.7671)
 osaka = GeoCoordinate.from_degrees(34.7025, 135.4959)
 
 print(tokyo.initial_bearing_to(osaka).degree)  # [255.57...]
 east = tokyo.destination(
-    Angle(value=np.array([90.0]), unit=AngleUnit.DEGREE),
+    Bearing.from_degrees(90.0),
     Length(value=np.array([1.0]), unit=LengthUnit.KM),
 )
 ```

@@ -8,6 +8,7 @@ import numpy as np
 from units import Angle, AngleUnit, Length, LengthUnit, NumericArray
 
 from .altitude import Altitude
+from .bearing import Bearing
 from .sexagesimal import SexagesimalNotation, SexagesimalText
 
 
@@ -97,7 +98,7 @@ class GeoCoordinateBase(ABC):
             other.longitude.radian,
         )
 
-    def initial_bearing_to(self, other: GeoCoordinateBase) -> Angle:
+    def initial_bearing_to(self, other: GeoCoordinateBase) -> Bearing:
         """
         Initial bearing of the great circle towards `other`, clockwise from north.
 
@@ -112,8 +113,8 @@ class GeoCoordinateBase(ABC):
 
         Returns
         -------
-        Angle
-            The bearings in degrees, within [0, 360).
+        Bearing
+            The bearings from true north, in degrees within [0, 360).
 
         Raises
         ------
@@ -128,7 +129,7 @@ class GeoCoordinateBase(ABC):
             other.longitude.radian,
         )
 
-    def destination(self, bearing: Angle, distance: Length) -> Self:
+    def destination(self, bearing: Bearing, distance: Length) -> Self:
         """
         Coordinates reached by travelling along a great circle.
 
@@ -136,8 +137,8 @@ class GeoCoordinateBase(ABC):
 
         Parameters
         ----------
-        bearing : Angle
-            The initial bearings, clockwise from north.
+        bearing : Bearing
+            The initial bearings, clockwise from true north.
         distance : Length
             The distances to travel along the surface.
 
@@ -151,13 +152,17 @@ class GeoCoordinateBase(ABC):
         Raises
         ------
         ValueError
-            If the arguments hold more than one element and differ in length,
-            or if the destinations do not fit this coordinate type.
+            If the bearings are measured from magnetic north, whose offset from
+            true north is not known here, if the arguments hold more than one
+            element and differ in length, or if the destinations do not fit this
+            coordinate type.
         """
+        if not bearing.is_true_north:
+            raise ValueError("destination requires bearings measured from true north")
         length: int = self._broadcast_length(
             {
                 "coordinates": len(self),
-                "bearing": len(bearing.value),
+                "bearing": len(bearing),
                 "distance": len(distance.value),
             }
         )
@@ -251,7 +256,7 @@ class GeoCoordinateBase(ABC):
         longitude_from: NumericArray,
         latitude_to: NumericArray,
         longitude_to: NumericArray,
-    ) -> Angle:
+    ) -> Bearing:
         """
         Initial great-circle bearing between broadcastable arrays of radians.
 
@@ -268,18 +273,17 @@ class GeoCoordinateBase(ABC):
 
         Returns
         -------
-        Angle
-            The bearings in degrees within [0, 360), in the broadcast shape of
-            the inputs.
+        Bearing
+            The bearings from true north in degrees within [0, 360), in the
+            broadcast shape of the inputs.
         """
         longitude_difference = longitude_to - longitude_from
         east_component = np.sin(longitude_difference) * np.cos(latitude_to)
         north_component = np.cos(latitude_from) * np.sin(latitude_to) - (
             np.sin(latitude_from) * np.cos(latitude_to) * np.cos(longitude_difference)
         )
-        wrapped_degree = np.mod(np.degrees(np.arctan2(east_component, north_component)), 360)
-        bearing_degree: NumericArray = np.where(wrapped_degree >= 360, 0.0, wrapped_degree)
-        return Angle(value=bearing_degree, unit=AngleUnit.DEGREE)
+        bearing_degree: NumericArray = np.degrees(np.arctan2(east_component, north_component))
+        return Bearing.wrapped(Angle(value=bearing_degree, unit=AngleUnit.DEGREE))
 
     @classmethod
     def _surface_distance(
