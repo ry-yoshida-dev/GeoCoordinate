@@ -11,7 +11,7 @@ class CoordinateReferenceSystem(Protocol):
     """
     A coordinate reference system identified by an EPSG code.
 
-    `GeodeticCrs`, `JapanPlaneRectangularZone` and `WebMercator` all satisfy it,
+    `GeodeticCrs`, `JapanPlaneRectangularZone`, `UtmZone` and `WebMercator` all satisfy it,
     so code that only needs a CRS can accept any of them. Each prints as
     `EPSG:<code>`.
     """

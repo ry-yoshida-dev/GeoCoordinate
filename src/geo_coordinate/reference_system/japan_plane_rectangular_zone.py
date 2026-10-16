@@ -213,6 +213,36 @@ class JapanPlaneRectangularZone(IntEnum):
         """
         return min(cls, key=lambda zone: float(location.distance_to(zone.origin).meter[0]))
 
+    @classmethod
+    def is_covering(cls, location: GeoCoordinate) -> bool:
+        """
+        Tell whether a location lies where some zone is meant to be used.
+
+        Each zone is meant for the area of use its EPSG definition gives, approximated
+        here by the bounding box of that area. The boxes enclose the land of each zone
+        closely, so a location in Korea or Taiwan does not count, and neither may one
+        a few kilometres offshore.
+
+        Parameters
+        ----------
+        location : GeoCoordinate
+            The location to test, such as the centre of a dataset.
+
+        Returns
+        -------
+        bool
+            Whether the bounding box of the area of use of any zone holds the location.
+        """
+        latitude = float(location.latitude.degree[0])
+        longitude = float(location.longitude.degree[0])
+        for zone in cls:
+            area = zone.crs.area_of_use
+            if area is None:
+                raise RuntimeError(f"{zone} has no area of use in the EPSG database")
+            if area.west <= longitude <= area.east and area.south <= latitude <= area.north:
+                return True
+        return False
+
     @staticmethod
     def _degrees(degrees: float) -> Angle:
         return Angle(value=np.array([degrees]), unit=AngleUnit.DEGREE)

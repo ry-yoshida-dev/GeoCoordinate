@@ -9,12 +9,14 @@ Coordinate reference systems (CRSs) by EPSG code. Every member is its EPSG code,
 Latitudes and longitudes mean nothing exact without the datum they are measured on: the same
 point differs by about 400 m between Tokyo Datum and JGD2011. `GeodeticCrs` names the
 geographic CRSs Japanese data is published in. Lengths and areas need a plane instead of
-degrees, which `JapanPlaneRectangularZone` provides for surveying and `WebMercator` for web maps.
+degrees, which `JapanPlaneRectangularZone` provides for surveying in Japan, `UtmZone` anywhere
+else, and `WebMercator` for web maps.
 
 | CRS | Kind | Defined on |
 | --- | --- | --- |
 | `GeodeticCrs` | geographic, degrees | its own datum |
 | `JapanPlaneRectangularZone` | projected, metres, conformal within ~1/10000 | JGD2011 |
+| `UtmZone` | projected, metres, conformal within ~1/1000 | WGS 84 |
 | `WebMercator` | projected, metres, for display only | WGS 84 |
 
 ## Components
@@ -23,7 +25,8 @@ degrees, which `JapanPlaneRectangularZone` provides for surveying and `WebMercat
 |-----------|-------------|
 | [coordinate_reference_system.py](./coordinate_reference_system.py) | `CoordinateReferenceSystem`: the protocol every CRS here satisfies |
 | [geodetic_crs.py](./geodetic_crs.py) | `GeodeticCrs`: Tokyo Datum, JGD2000, JGD2011 and WGS 84 |
-| [japan_plane_rectangular_zone.py](./japan_plane_rectangular_zone.py) | `JapanPlaneRectangularZone`: the nineteen zones of the Japan Plane Rectangular Coordinate System, their origins and the zone nearest to a location |
+| [japan_plane_rectangular_zone.py](./japan_plane_rectangular_zone.py) | `JapanPlaneRectangularZone`: the nineteen zones of the Japan Plane Rectangular Coordinate System, their origins, the zone nearest to a location and whether any zone covers it |
+| [utm_zone.py](./utm_zone.py) | `UtmZone`: the zones of the Universal Transverse Mercator system and the zone a location lies in |
 | [web_mercator.py](./web_mercator.py) | `WebMercator`: EPSG:3857 (`PSEUDO_MERCATOR`) and the extent of its world square |
 
 ## Examples
@@ -52,4 +55,14 @@ from geo_coordinate import GeoCoordinate, JapanPlaneRectangularZone
 
 chofu = GeoCoordinate.from_degrees(35.652, 139.541)
 print(JapanPlaneRectangularZone.nearest_to(chofu))  # EPSG:6677
+```
+
+Outside the areas the zones are meant for, a dataset is measured in the UTM zone it lies in:
+
+```python
+from geo_coordinate import GeoCoordinate, JapanPlaneRectangularZone, UtmZone
+
+paris = GeoCoordinate.from_degrees(48.857, 2.352)
+print(JapanPlaneRectangularZone.is_covering(paris))  # False
+print(UtmZone.containing(paris))  # EPSG:32631
 ```

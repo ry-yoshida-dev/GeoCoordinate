@@ -18,6 +18,7 @@ from .reference_system import (
     CoordinateReferenceSystem,
     GeodeticCrs,
     JapanPlaneRectangularZone,
+    UtmZone,
     WebMercator,
 )
 from .sexagesimal import SexagesimalNotation, SexagesimalText
@@ -36,5 +37,6 @@ __all__ = [
     "NorthReference",
     "SexagesimalNotation",
     "SexagesimalText",
+    "UtmZone",
     "WebMercator",
 ]

@@ -6,6 +6,8 @@ from geo_coordinate import (
     GeoCoordinate,
     GeodeticCrs,
     JapanPlaneRectangularZone,
+    LatitudeHemisphere,
+    UtmZone,
     WebMercator,
 )
 
@@ -13,6 +15,8 @@ ALL_MEMBERS: list[CoordinateReferenceSystem] = [
     *GeodeticCrs,
     *JapanPlaneRectangularZone,
     *WebMercator,
+    UtmZone(number=31, hemisphere=LatitudeHemisphere.NORTH),
+    UtmZone(number=56, hemisphere=LatitudeHemisphere.SOUTH),
 ]
 
 
@@ -120,3 +124,71 @@ class TestJapanPlaneRectangularZoneOrigin:
     ) -> None:
         location = GeoCoordinate.from_degrees(latitude, longitude)
         assert JapanPlaneRectangularZone.nearest_to(location) is zone
+
+    @pytest.mark.parametrize(
+        ("latitude", "longitude", "is_covered"),
+        [
+            (35.652, 139.541, True),
+            (26.212, 127.681, True),
+            (37.566, 126.978, False),
+            (35.180, 129.076, False),
+            (25.033, 121.565, False),
+            (48.857, 2.352, False),
+        ],
+        ids=["chofu", "naha", "seoul", "busan", "taipei", "paris"],
+    )
+    def test_covers_japan_and_not_its_neighbours(
+        self, latitude: float, longitude: float, is_covered: bool
+    ) -> None:
+        location = GeoCoordinate.from_degrees(latitude, longitude)
+        assert JapanPlaneRectangularZone.is_covering(location) is is_covered
+
+
+class TestUtmZone:
+    @pytest.mark.parametrize(
+        ("latitude", "longitude", "epsg"),
+        [
+            (48.857, 2.352, 32631),
+            (40.713, -74.006, 32618),
+            (-33.869, 151.209, 32756),
+            (-22.907, -43.173, 32723),
+            (0.0, 180.0, 32660),
+            (0.0, -180.0, 32601),
+        ],
+        ids=["paris", "new-york", "sydney", "rio", "antimeridian-east", "antimeridian-west"],
+    )
+    def test_contains_the_location_in_its_band(
+        self, latitude: float, longitude: float, epsg: int
+    ) -> None:
+        zone = UtmZone.containing(GeoCoordinate.from_degrees(latitude, longitude))
+        assert zone.epsg == epsg
+
+    def test_central_meridian_matches_the_epsg_definition(self) -> None:
+        for zone in (
+            UtmZone(number=number, hemisphere=LatitudeHemisphere.NORTH) for number in (1, 31, 60)
+        ):
+            operation = zone.crs.coordinate_operation
+            assert operation is not None
+            longitude = next(
+                parameter.value
+                for parameter in operation.params
+                if parameter.name == "Longitude of natural origin"
+            )
+            assert zone.central_meridian.degree[0] == pytest.approx(longitude)
+
+    def test_identifies_its_zones_only(self) -> None:
+        zone = UtmZone(number=54, hemisphere=LatitudeHemisphere.NORTH)
+        assert UtmZone.from_crs(zone.crs) == zone
+        assert UtmZone.from_crs(CRS.from_epsg(32754)) == UtmZone(
+            number=54, hemisphere=LatitudeHemisphere.SOUTH
+        )
+        assert UtmZone.from_crs(JapanPlaneRectangularZone.ZONE_9.crs) is None
+        assert UtmZone.from_crs(CRS.from_epsg(25831)) is None
+
+    def test_rejects_numbers_outside_the_sixty_zones(self) -> None:
+        with pytest.raises(ValueError, match="between 1 and 60"):
+            UtmZone(number=0, hemisphere=LatitudeHemisphere.NORTH)
+
+    def test_rejects_the_polar_regions(self) -> None:
+        with pytest.raises(ValueError, match="UTM covers latitudes"):
+            UtmZone.containing(GeoCoordinate.from_degrees(85.0, 0.0))
