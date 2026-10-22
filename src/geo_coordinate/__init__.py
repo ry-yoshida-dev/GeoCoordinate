@@ -20,6 +20,7 @@ from .reference_system import (
     JapanPlaneRectangularZone,
     UtmZone,
     WebMercator,
+    WebMercatorProjection,
 )
 from .sexagesimal import SexagesimalNotation, SexagesimalText
 
@@ -39,4 +40,5 @@ __all__ = [
     "SexagesimalText",
     "UtmZone",
     "WebMercator",
+    "WebMercatorProjection",
 ]

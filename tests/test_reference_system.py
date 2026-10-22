@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 from pyproj import CRS, Transformer
 
@@ -9,6 +10,7 @@ from geo_coordinate import (
     LatitudeHemisphere,
     UtmZone,
     WebMercator,
+    WebMercatorProjection,
 )
 
 ALL_MEMBERS: list[CoordinateReferenceSystem] = [
@@ -88,6 +90,61 @@ class TestWebMercator:
         )
         x, _ = transformer.transform(180.0, 0.0)
         assert x == pytest.approx(projection.half_extent)
+
+    def test_half_extent_is_reached_at_the_latitude_limit(self) -> None:
+        projection = WebMercator.PSEUDO_MERCATOR
+        transformer = Transformer.from_crs(
+            projection.geodetic_crs.crs, projection.crs, always_xy=True
+        )
+        _, y = transformer.transform(0.0, projection.latitude_limit)
+        assert y == pytest.approx(projection.half_extent)
+
+
+class TestWebMercatorProjection:
+    def test_round_trips_places_through_the_plane(self) -> None:
+        projection = WebMercatorProjection()
+        longitude = np.array([139.541, -0.1276, 0.0])
+        latitude = np.array([35.652, 51.5072, 0.0])
+
+        places = projection.unproject(projection.project(longitude, latitude))
+
+        np.testing.assert_allclose(places, np.column_stack([longitude, latitude]), atol=1e-9)
+
+    def test_puts_the_antimeridian_on_the_edge_of_the_world(self) -> None:
+        points = WebMercatorProjection().project(np.array([180.0]), np.array([0.0]))
+
+        assert points[0, 0] == pytest.approx(WebMercator.PSEUDO_MERCATOR.half_extent)
+        assert points[0, 1] == pytest.approx(0.0)
+
+    def test_ground_scale_shrinks_towards_the_poles(self) -> None:
+        assert WebMercatorProjection.ground_scale(0.0) == pytest.approx(1.0)
+        assert WebMercatorProjection.ground_scale(60.0) == pytest.approx(0.5)
+
+    def test_rejects_mismatched_arrays(self) -> None:
+        with pytest.raises(ValueError, match="same shape"):
+            WebMercatorProjection().project(np.array([0.0, 1.0]), np.array([0.0]))
+        with pytest.raises(ValueError, match="same shape"):
+            WebMercatorProjection().project(np.zeros((1, 2)), np.zeros((1, 2)))
+        with pytest.raises(ValueError, match=r"\(N, 2\)"):
+            WebMercatorProjection().unproject(np.zeros((2, 3)))
+
+    def test_rejects_places_outside_the_world_square(self) -> None:
+        projection = WebMercatorProjection()
+        half_extent = WebMercator.PSEUDO_MERCATOR.half_extent
+        with pytest.raises(ValueError, match="latitudes must lie within"):
+            projection.project(np.array([0.0]), np.array([89.9]))
+        with pytest.raises(ValueError, match="points must lie within"):
+            projection.unproject(np.array([[0.0, 1.01 * half_extent]]))
+
+    def test_round_trips_the_corner_of_the_world_square(self) -> None:
+        projection = WebMercatorProjection()
+        latitude_limit = WebMercator.PSEUDO_MERCATOR.latitude_limit
+        longitude = np.array([180.0, -180.0])
+        latitude = np.array([latitude_limit, -latitude_limit])
+
+        places = projection.unproject(projection.project(longitude, latitude))
+
+        np.testing.assert_allclose(places, np.column_stack([longitude, latitude]), atol=1e-9)
 
 
 class TestJapanPlaneRectangularZoneOrigin:

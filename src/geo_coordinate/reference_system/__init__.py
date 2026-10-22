@@ -7,6 +7,7 @@ from .geodetic_crs import GeodeticCrs
 from .japan_plane_rectangular_zone import JapanPlaneRectangularZone
 from .utm_zone import UtmZone
 from .web_mercator import WebMercator
+from .web_mercator_projection import WebMercatorProjection
 
 __all__ = [
     "CoordinateReferenceSystem",
@@ -14,4 +15,5 @@ __all__ = [
     "JapanPlaneRectangularZone",
     "UtmZone",
     "WebMercator",
+    "WebMercatorProjection",
 ]

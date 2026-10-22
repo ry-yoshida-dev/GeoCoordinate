@@ -76,5 +76,17 @@ class WebMercator(IntEnum):
         """
         return math.pi * EARTH_EQUATORIAL_RADIUS_METRES
 
+    @property
+    def latitude_limit(self) -> float:
+        """
+        Return the latitude at which the world square ends, in degrees.
+
+        Returns
+        -------
+        float
+            About 85.0511, where the northing reaches `half_extent`.
+        """
+        return math.degrees(2.0 * math.atan(math.exp(math.pi)) - math.pi / 2.0)
+
     def __str__(self) -> str:
         return f"EPSG:{self.value}"

@@ -27,7 +27,8 @@ else, and `WebMercator` for web maps.
 | [geodetic_crs.py](./geodetic_crs.py) | `GeodeticCrs`: Tokyo Datum, JGD2000, JGD2011 and WGS 84 |
 | [japan_plane_rectangular_zone.py](./japan_plane_rectangular_zone.py) | `JapanPlaneRectangularZone`: the nineteen zones of the Japan Plane Rectangular Coordinate System, their origins, the zone nearest to a location and whether any zone covers it |
 | [utm_zone.py](./utm_zone.py) | `UtmZone`: the zones of the Universal Transverse Mercator system and the zone a location lies in |
-| [web_mercator.py](./web_mercator.py) | `WebMercator`: EPSG:3857 (`PSEUDO_MERCATOR`) and the extent of its world square |
+| [web_mercator.py](./web_mercator.py) | `WebMercator`: EPSG:3857 (`PSEUDO_MERCATOR`), the extent of its world square and the latitude where it ends |
+| [web_mercator_projection.py](./web_mercator_projection.py) | `WebMercatorProjection`: arrays of WGS 84 longitudes and latitudes to Web Mercator metres and back within the world square, and the ground scale at a latitude on the sphere |
 
 ## Examples
 
