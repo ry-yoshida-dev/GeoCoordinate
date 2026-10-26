@@ -19,6 +19,13 @@ else, and `WebMercator` for web maps.
 | `UtmZone` | projected, metres, conformal within ~1/1000 | WGS 84 |
 | `WebMercator` | projected, metres, for display only | WGS 84 |
 
+Heights come in two kinds. GNSS and 3D Tiles give heights above the ellipsoid, while maps,
+DEMs and surveys give heights above mean sea level, whose surface is the geoid. The geoid
+lies 30 to 45 m above the ellipsoid in Japan and varies from place to place, so the two are
+converted by the height of the geoid at each place. `GeoidModel` names the models PROJ
+publishes as grids, and `Geoid` reads one grid, downloaded beforehand from
+`GeoidModel.grid_url`, and interpolates its heights.
+
 ## Components
 
 | Component | Description |
@@ -27,6 +34,8 @@ else, and `WebMercator` for web maps.
 | [geodetic_crs.py](./geodetic_crs.py) | `GeodeticCrs`: Tokyo Datum, JGD2000, JGD2011 and WGS 84 |
 | [japan_plane_rectangular_zone.py](./japan_plane_rectangular_zone.py) | `JapanPlaneRectangularZone`: the nineteen zones of the Japan Plane Rectangular Coordinate System, their origins, the zone nearest to a location and whether any zone covers it |
 | [utm_zone.py](./utm_zone.py) | `UtmZone`: the zones of the Universal Transverse Mercator system and the zone a location lies in |
+| [geoid_model.py](./geoid_model.py) | `GeoidModel`: the Japanese geoids 2011 and 2024 and the global EGM96 and EGM2008, with the grid each is published as |
+| [geoid.py](./geoid.py) | `Geoid`: heights of the geoid above the ellipsoid, interpolated from the local grid of a model |
 | [web_mercator.py](./web_mercator.py) | `WebMercator`: EPSG:3857 (`PSEUDO_MERCATOR`), the extent of its world square and the latitude where it ends |
 | [web_mercator_projection.py](./web_mercator_projection.py) | `WebMercatorProjection`: arrays of WGS 84 longitudes and latitudes to Web Mercator metres and back within the world square, and the ground scale at a latitude on the sphere |
 
@@ -66,4 +75,18 @@ from geo_coordinate import GeoCoordinate, JapanPlaneRectangularZone, UtmZone
 paris = GeoCoordinate.from_degrees(48.857, 2.352)
 print(JapanPlaneRectangularZone.is_covering(paris))  # False
 print(UtmZone.containing(paris))  # EPSG:32631
+```
+
+Heights above the ellipsoid become heights above mean sea level by subtracting the geoid:
+
+```python
+from pathlib import Path
+
+import numpy as np
+
+from geo_coordinate import Geoid, GeoidModel
+
+geoid = Geoid(GeoidModel.GSIGEO2011, Path("jp_gsi_gsigeo2011.tif"))
+heights = geoid.interpolate_heights(np.array([139.76, 2.35]), np.array([35.68, 48.85]))
+print(heights)  # [36.68...  nan]: Paris lies outside the Japanese grid
 ```

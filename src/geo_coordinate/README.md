@@ -14,7 +14,7 @@ Array-based geographic coordinates on top of `units.Angle` and `units.Length`.
 | [altitude.py](./altitude.py) | `Altitude`, signed heights relative to mean sea level |
 | [bearing/](./bearing/README.md) | `Bearing` and `NorthReference`, directions clockwise from true or magnetic north |
 | [hemisphere/](./hemisphere/) | `LatitudeHemisphere` and `LongitudeHemisphere` enums of the `N` / `S` and `E` / `W` abbreviations |
-| [reference_system/](./reference_system/README.md) | `GeodeticCrs`, `JapanPlaneRectangularZone` and `WebMercator`, the datums and planar projections coordinates are measured in |
+| [reference_system/](./reference_system/README.md) | `GeodeticCrs`, `JapanPlaneRectangularZone` and `WebMercator`, the datums and planar projections coordinates are measured in, and `Geoid`, the heights of geoid models above the ellipsoid |
 | [sexagesimal/](./sexagesimal/) | `SexagesimalNotation` parsing and formatting of texts such as `35°40'52.27"N` |
 
 ## Altitude

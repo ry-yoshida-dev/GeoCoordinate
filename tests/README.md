@@ -13,6 +13,7 @@ Pytest suite for `geo_coordinate`.
 | [test_altitude.py](./test_altitude.py) | Signed values, magnitudes and validation of `Altitude` |
 | [test_hemisphere.py](./test_hemisphere.py) | Parsing and signs of `LatitudeHemisphere` and `LongitudeHemisphere` |
 | [test_reference_system.py](./test_reference_system.py) | EPSG codes, datums and identification of `GeodeticCrs`, `JapanPlaneRectangularZone`, `UtmZone` and `WebMercator`, the origins, nearest zone and coverage of `JapanPlaneRectangularZone`, and the zone a location lies in of `UtmZone` |
+| [test_geoid.py](./test_geoid.py) | Grids of `GeoidModel`, and interpolation, places outside the grid and validation of `Geoid` |
 | [test_sexagesimal.py](./test_sexagesimal.py) | Parsing, formatting and validation of `SexagesimalNotation` |
 
 ## Example

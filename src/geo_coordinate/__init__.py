@@ -17,6 +17,8 @@ from .hemisphere import LatitudeHemisphere, LongitudeHemisphere
 from .reference_system import (
     CoordinateReferenceSystem,
     GeodeticCrs,
+    Geoid,
+    GeoidModel,
     JapanPlaneRectangularZone,
     UtmZone,
     WebMercator,
@@ -32,6 +34,8 @@ __all__ = [
     "GeoCoordinateBase",
     "GeoCoordinates",
     "GeodeticCrs",
+    "Geoid",
+    "GeoidModel",
     "JapanPlaneRectangularZone",
     "LatitudeHemisphere",
     "LongitudeHemisphere",
