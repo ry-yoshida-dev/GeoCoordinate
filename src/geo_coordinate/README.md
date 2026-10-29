@@ -18,6 +18,7 @@ Array-based geographic coordinates on top of `units.Angle` and `units.Length`.
 | [hemisphere/](./hemisphere/) | `LatitudeHemisphere` and `LongitudeHemisphere` enums of the `N` / `S` and `E` / `W` abbreviations |
 | [reference_system/](./reference_system/README.md) | `GeodeticCrs`, `Ellipsoid`, `JapanPlaneRectangularZone`, `UtmZone` and `WebMercator`, the datums and planar projections coordinates are measured in, `DatumTransformation` and `PlaneProjection` between them, and `Geoid`, the heights of geoid models above the ellipsoid |
 | [regional_mesh/](./regional_mesh/README.md) | `RegionalMeshLevel`, `RegionalMeshCode` and `RegionalMeshBounds`, the regional meshes of JIS X 0410 and their extents computed from their codes |
+| [shape/](./shape/README.md) | `GeoLineString`, `GeoLinearRing`, `GeoPolygon`, `GeoMultiPolygon` and `GeoBoundingBox`, lines and areas with point-in-polygon tests, and `GeoJsonGeometry`, their GeoJSON geometries |
 | [sexagesimal/](./sexagesimal/) | `SexagesimalNotation` parsing and formatting of texts such as `35°40'52.27"N` |
 
 ## Altitude
@@ -101,6 +102,13 @@ east = tokyo.destination(
 Ellipsoidal distances, accurate to nanometres instead of about 0.5 percent,
 come from `Geodesic` on the ellipsoid of the datum; see
 [geodesic/README.md](./geodesic/README.md).
+
+## Lines and Areas
+
+`GeoLineString`, `GeoPolygon` and `GeoMultiPolygon` hold `GeoCoordinates` as their
+vertices, test which places lie inside, and are read from and written to GeoJSON
+geometries by `GeoJsonGeometry`. `Geodesic.area` measures areas on the ellipsoid; see
+[shape/README.md](./shape/README.md).
 
 ## Altitude Profile
 

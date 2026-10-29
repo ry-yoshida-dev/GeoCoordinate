@@ -3,13 +3,14 @@ from __future__ import annotations
 import numpy as np
 from numpy.typing import NDArray
 from pyproj import Geod
-from units import Angle, AngleUnit, Length, LengthUnit
+from units import Angle, AngleUnit, Area, AreaUnit, Length, LengthUnit
 
 from ..altitude import Altitude
 from ..base import GeoCoordinateBase
 from ..bearing import Bearing
 from ..coordinates import GeoCoordinates
 from ..reference_system import Ellipsoid
+from ..shape import GeoLinearRing, GeoMultiPolygon, GeoPolygon
 from .inverse import GeodesicInverse
 
 
@@ -196,6 +197,84 @@ class Geodesic:
         """
         total: NDArray[np.float64] = np.array([np.sum(self.segment_distances(path).meter)])
         return Length(value=total, unit=LengthUnit.M)
+
+    def area(self, shape: GeoPolygon | GeoMultiPolygon) -> Area:
+        """
+        Area of a polygon or of all parts of a multi polygon on the ellipsoid.
+
+        The edges are taken as geodesics, and holes are subtracted. The rings may run
+        either way.
+
+        Parameters
+        ----------
+        shape : GeoPolygon | GeoMultiPolygon
+            The area to measure.
+
+        Returns
+        -------
+        Area
+            The total area in square meters, of shape (1,).
+        """
+        match shape:
+            case GeoPolygon():
+                polygons: tuple[GeoPolygon, ...] = (shape,)
+            case GeoMultiPolygon():
+                polygons = shape.polygons
+        total: float = sum(
+            (
+                self._ring_area(polygon.exterior)
+                - sum((self._ring_area(hole) for hole in polygon.holes), 0.0)
+                for polygon in polygons
+            ),
+            0.0,
+        )
+        return Area(value=np.array([total]), unit=AreaUnit.SQUARE_METER)
+
+    def perimeter(self, shape: GeoLinearRing | GeoPolygon | GeoMultiPolygon) -> Length:
+        """
+        Length around a ring, or around every ring of a polygon or multi polygon.
+
+        Parameters
+        ----------
+        shape : GeoLinearRing | GeoPolygon | GeoMultiPolygon
+            The shape to measure. The rings of holes count towards the perimeter.
+
+        Returns
+        -------
+        Length
+            The total length of the geodesic edges in meters, of shape (1,).
+        """
+        match shape:
+            case GeoLinearRing():
+                rings: tuple[GeoLinearRing, ...] = (shape,)
+            case GeoPolygon():
+                rings = shape.rings
+            case GeoMultiPolygon():
+                rings = tuple(ring for polygon in shape.polygons for ring in polygon.rings)
+        total: float = sum(
+            (float(self.path_length(ring.closed_vertices).meter[0]) for ring in rings), 0.0
+        )
+        return Length(value=np.array([total]), unit=LengthUnit.M)
+
+    def _ring_area(self, ring: GeoLinearRing) -> float:
+        """
+        Unsigned area enclosed by a ring of geodesic edges.
+
+        Parameters
+        ----------
+        ring : GeoLinearRing
+            The ring to measure.
+
+        Returns
+        -------
+        float
+            The area in square meters.
+        """
+        area, _ = self._geod.polygon_area_perimeter(
+            ring.vertices.longitude.degree.astype(np.float64),
+            ring.vertices.latitude.degree.astype(np.float64),
+        )
+        return abs(float(area))
 
     @staticmethod
     def _broadcast_length(*lengths: int) -> int:

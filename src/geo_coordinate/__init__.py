@@ -40,6 +40,17 @@ from .reference_system import (
 )
 from .regional_mesh import RegionalMeshBounds, RegionalMeshCode, RegionalMeshLevel
 from .sexagesimal import SexagesimalNotation, SexagesimalText
+from .shape import (
+    GeoBoundingBox,
+    GeoJsonGeometry,
+    GeoJsonType,
+    GeoLinearRing,
+    GeoLineString,
+    GeoMultiPolygon,
+    GeoPolygon,
+    GeoShape,
+    JsonValue,
+)
 
 __all__ = [
     "Altitude",
@@ -49,9 +60,17 @@ __all__ = [
     "EarthCenteredCoordinates",
     "EastNorthUp",
     "Ellipsoid",
+    "GeoBoundingBox",
     "GeoCoordinate",
     "GeoCoordinateBase",
     "GeoCoordinates",
+    "GeoJsonGeometry",
+    "GeoJsonType",
+    "GeoLineString",
+    "GeoLinearRing",
+    "GeoMultiPolygon",
+    "GeoPolygon",
+    "GeoShape",
     "GeocentricConversion",
     "Geodesic",
     "GeodesicInverse",
@@ -60,6 +79,7 @@ __all__ = [
     "Geoid",
     "GeoidModel",
     "JapanPlaneRectangularZone",
+    "JsonValue",
     "LatitudeHemisphere",
     "LocalTangentPlane",
     "LongitudeHemisphere",

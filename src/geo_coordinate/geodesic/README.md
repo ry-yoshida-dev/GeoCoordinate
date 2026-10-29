@@ -13,6 +13,8 @@ by PROJ. Altitudes are ignored.
 | `distance(start, end)` | Lengths only |
 | `direct(start, bearing, distance)` | Places reached, of the type of `start`, with altitudes carried over |
 | `segment_distances(path)`, `path_length(path)` | Along a `GeoCoordinates` path |
+| `area(shape)` | `Area` of a `GeoPolygon` or `GeoMultiPolygon`, holes subtracted |
+| `perimeter(shape)` | Length around a `GeoLinearRing`, `GeoPolygon` or `GeoMultiPolygon`, holes included |
 
 ## Components
 
