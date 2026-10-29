@@ -194,6 +194,37 @@ class GeoCoordinateBase(ABC):
             altitude=altitude,
         )
 
+    def relocated(self, latitude: Angle, longitude: Angle) -> Self:
+        """
+        Coordinates of the same type at other places, with the altitudes carried over.
+
+        Used when the places are re-expressed, such as in another datum, while their
+        heights stay as they are.
+
+        Parameters
+        ----------
+        latitude : Angle
+            The new latitudes, as many as there are coordinates.
+        longitude : Angle
+            The new longitudes, as many as there are coordinates.
+
+        Returns
+        -------
+        Self
+            The coordinates at the new places.
+
+        Raises
+        ------
+        ValueError
+            If the new angles differ in length from these coordinates or are out of range.
+        """
+        if len(latitude) != len(self) or len(longitude) != len(self):
+            raise ValueError(
+                "latitude and longitude must have as many elements as the coordinates, "
+                + f"given: {len(latitude)} and {len(longitude)} for {len(self)}"
+            )
+        return type(self)(latitude=latitude, longitude=longitude, altitude=self.altitude)
+
     def to_sexagesimal(self, seconds_decimals: int = 2) -> SexagesimalText:
         """
         Write the coordinates in degrees, minutes, seconds and hemisphere letters.

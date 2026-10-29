@@ -5,7 +5,10 @@ from pathlib import Path
 import numpy as np
 from numpy.typing import NDArray
 from pyproj import Transformer
+from units import LengthUnit
 
+from ..altitude import Altitude
+from ..base import GeoCoordinateBase
 from .geoid_model import GeoidModel
 
 
@@ -76,7 +79,7 @@ class Geoid:
         Returns
         -------
         NDArray[np.float64]
-            The heights in metres, of shape (N,), NaN at places outside the grid.
+            The heights in meters, of shape (N,), NaN at places outside the grid.
 
         Raises
         ------
@@ -93,3 +96,87 @@ class Geoid:
         )
         shifted: NDArray[np.float64] = np.asarray(heights, dtype=np.float64)
         return np.where(np.isfinite(shifted), shifted, np.nan)
+
+    def to_altitude(
+        self, coordinates: GeoCoordinateBase, ellipsoidal_height: NDArray[np.float64]
+    ) -> Altitude:
+        """
+        Turn heights above the ellipsoid into altitudes above mean sea level.
+
+        Parameters
+        ----------
+        coordinates : GeoCoordinateBase
+            The places of the heights, in the CRS of the model.
+        ellipsoidal_height : NDArray[np.float64]
+            The heights above the ellipsoid in meters, as GNSS gives them, of shape (N,).
+
+        Returns
+        -------
+        Altitude
+            The heights above the geoid in meters, of shape (N,).
+
+        Raises
+        ------
+        ValueError
+            If `ellipsoidal_height` differs in shape from the coordinates, or a place lies
+            outside the grid.
+        """
+        if ellipsoidal_height.shape != (len(coordinates),):
+            raise ValueError(
+                f"ellipsoidal_height must be of shape ({len(coordinates)},), "
+                + f"given: {ellipsoidal_height.shape}"
+            )
+        geoid_height: NDArray[np.float64] = self._heights_within_grid(coordinates)
+        altitude: NDArray[np.float64] = ellipsoidal_height - geoid_height
+        return Altitude(value=altitude, unit=LengthUnit.M)
+
+    def to_ellipsoidal_height(self, coordinates: GeoCoordinateBase) -> NDArray[np.float64]:
+        """
+        Turn the altitudes of coordinates into heights above the ellipsoid.
+
+        Parameters
+        ----------
+        coordinates : GeoCoordinateBase
+            The places with their altitudes above mean sea level, in the CRS of the model.
+
+        Returns
+        -------
+        NDArray[np.float64]
+            The heights above the ellipsoid in meters, of shape (N,).
+
+        Raises
+        ------
+        ValueError
+            If the coordinates carry no altitude, or a place lies outside the grid.
+        """
+        if coordinates.altitude is None:
+            raise ValueError("to_ellipsoidal_height requires coordinates with an altitude")
+        geoid_height: NDArray[np.float64] = self._heights_within_grid(coordinates)
+        return coordinates.altitude.meter.astype(np.float64) + geoid_height
+
+    def _heights_within_grid(self, coordinates: GeoCoordinateBase) -> NDArray[np.float64]:
+        """
+        Interpolate the heights of the geoid at places that must lie within the grid.
+
+        Parameters
+        ----------
+        coordinates : GeoCoordinateBase
+            The places, in the CRS of the model.
+
+        Returns
+        -------
+        NDArray[np.float64]
+            The heights of the geoid in meters, of shape (N,).
+
+        Raises
+        ------
+        ValueError
+            If a place lies outside the grid.
+        """
+        heights: NDArray[np.float64] = self.interpolate_heights(
+            coordinates.longitude.degree.astype(np.float64),
+            coordinates.latitude.degree.astype(np.float64),
+        )
+        if np.any(np.isnan(heights)):
+            raise ValueError(f"some of the places lie outside the grid of {self._model.label}")
+        return heights

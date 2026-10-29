@@ -3,8 +3,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 from numpy.typing import NDArray
+from units import LengthUnit
 
-from geo_coordinate import GeodeticCrs, Geoid, GeoidModel
+from geo_coordinate import Altitude, GeoCoordinate, GeoCoordinates, GeodeticCrs, Geoid, GeoidModel
 
 SOUTH = 35.0
 WEST = 139.0
@@ -72,3 +73,35 @@ class TestGeoid:
         geoid = Geoid(GeoidModel.GSIGEO2011, grid_path)
         with pytest.raises(ValueError):
             geoid.interpolate_heights(np.array([139.0, 139.5]), np.array([35.0]))
+
+
+class TestGeoidHeightConversion:
+    def test_ellipsoidal_heights_become_altitudes(self, grid_path: Path) -> None:
+        geoid = Geoid(GeoidModel.GSIGEO2011, grid_path)
+        places = GeoCoordinates.from_degrees(
+            latitude=np.array([35.0, 35.25]), longitude=np.array([139.0, 139.25])
+        )
+
+        altitude = geoid.to_altitude(places, np.array([100.0, 20.0]))
+
+        assert altitude.meter == pytest.approx([70.0, -14.0])
+
+    def test_altitudes_become_ellipsoidal_heights(self, grid_path: Path) -> None:
+        geoid = Geoid(GeoidModel.GSIGEO2011, grid_path)
+        station = GeoCoordinate.from_degrees(
+            35.0, 139.0, Altitude(value=np.array([70.0]), unit=LengthUnit.M)
+        )
+
+        assert geoid.to_ellipsoidal_height(station) == pytest.approx([100.0])
+
+    def test_places_outside_the_grid_are_refused(self, grid_path: Path) -> None:
+        geoid = Geoid(GeoidModel.GSIGEO2011, grid_path)
+        with pytest.raises(ValueError, match="outside the grid"):
+            geoid.to_altitude(GeoCoordinate.from_degrees(48.85, 2.35), np.array([100.0]))
+
+    def test_conversion_needs_matching_heights_and_altitudes(self, grid_path: Path) -> None:
+        geoid = Geoid(GeoidModel.GSIGEO2011, grid_path)
+        with pytest.raises(ValueError, match="ellipsoidal_height"):
+            geoid.to_altitude(GeoCoordinate.from_degrees(35.0, 139.0), np.zeros(2))
+        with pytest.raises(ValueError, match="altitude"):
+            geoid.to_ellipsoidal_height(GeoCoordinate.from_degrees(35.0, 139.0))

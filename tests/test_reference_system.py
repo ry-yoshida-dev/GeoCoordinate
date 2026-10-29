@@ -4,6 +4,7 @@ from pyproj import CRS, Transformer
 
 from geo_coordinate import (
     CoordinateReferenceSystem,
+    Ellipsoid,
     GeoCoordinate,
     GeodeticCrs,
     JapanPlaneRectangularZone,
@@ -249,3 +250,38 @@ class TestUtmZone:
     def test_rejects_the_polar_regions(self) -> None:
         with pytest.raises(ValueError, match="UTM covers latitudes"):
             UtmZone.containing(GeoCoordinate.from_degrees(85.0, 0.0))
+
+
+class TestEllipsoid:
+    @pytest.mark.parametrize("datum", list(GeodeticCrs), ids=str)
+    def test_every_datum_names_the_ellipsoid_of_its_epsg_definition(
+        self, datum: GeodeticCrs
+    ) -> None:
+        ellipsoid = datum.crs.ellipsoid
+        assert ellipsoid is not None
+        assert datum.ellipsoid.semi_major_axis_meter == pytest.approx(ellipsoid.semi_major_metre)
+        assert datum.ellipsoid.inverse_flattening == pytest.approx(ellipsoid.inverse_flattening)
+
+    def test_derived_constants(self) -> None:
+        grs80 = Ellipsoid.GRS80
+        assert grs80.semi_minor_axis_meter == pytest.approx(6_356_752.314140, abs=1e-6)
+        assert grs80.eccentricity_squared == pytest.approx(0.00669438002290)
+        assert grs80.semi_major_axis.meter[0] == pytest.approx(6_378_137.0)
+        assert grs80.mean_radius_meter == pytest.approx(6_371_008.7714, abs=1e-4)
+
+
+class TestJapanPlaneRectangularZoneNumber:
+    def test_numbers_and_numerals(self) -> None:
+        assert JapanPlaneRectangularZone.ZONE_9.number == 9
+        assert JapanPlaneRectangularZone.ZONE_9.roman_numeral == "IX"
+        assert JapanPlaneRectangularZone.ZONE_4.roman_numeral == "IV"
+        assert JapanPlaneRectangularZone.ZONE_14.roman_numeral == "XIV"
+        assert JapanPlaneRectangularZone.ZONE_19.roman_numeral == "XIX"
+
+    def test_from_number_round_trips(self) -> None:
+        for zone in JapanPlaneRectangularZone:
+            assert JapanPlaneRectangularZone.from_number(zone.number) is zone
+
+    def test_rejects_numbers_outside_the_nineteen_zones(self) -> None:
+        with pytest.raises(ValueError, match="between 1 and 19"):
+            JapanPlaneRectangularZone.from_number(20)

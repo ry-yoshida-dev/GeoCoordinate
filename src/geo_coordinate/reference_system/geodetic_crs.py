@@ -4,6 +4,8 @@ from enum import IntEnum
 
 from pyproj import CRS
 
+from .ellipsoid import Ellipsoid
+
 
 class GeodeticCrs(IntEnum):
     """
@@ -67,6 +69,25 @@ class GeodeticCrs(IntEnum):
             This member.
         """
         return self
+
+    @property
+    def ellipsoid(self) -> Ellipsoid:
+        """
+        Return the reference ellipsoid of the datum.
+
+        Returns
+        -------
+        Ellipsoid
+            Bessel 1841 for Tokyo Datum, GRS80 for JGD2000 and JGD2011 and WGS 84 for
+            WGS 84.
+        """
+        match self:
+            case GeodeticCrs.TOKYO:
+                return Ellipsoid.BESSEL_1841
+            case GeodeticCrs.JGD2000 | GeodeticCrs.JGD2011:
+                return Ellipsoid.GRS80
+            case GeodeticCrs.WGS84:
+                return Ellipsoid.WGS84
 
     @property
     def label(self) -> str:

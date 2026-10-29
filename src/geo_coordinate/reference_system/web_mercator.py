@@ -17,7 +17,7 @@ class WebMercator(IntEnum):
 
     Like the other CRSs, the member is its EPSG code. The projection treats WGS 84
     coordinates as if on a sphere of the equatorial radius. Its world is the square
-    of side `2 * half_extent` metres centred on the origin, reached at about 85.05
+    of side `2 * half_extent` meters centred on the origin, reached at about 85.05
     degrees of latitude north and south.
 
     Attributes
@@ -67,7 +67,7 @@ class WebMercator(IntEnum):
     @property
     def half_extent(self) -> float:
         """
-        Return half the side of the square world, in metres.
+        Return half the side of the square world, in meters.
 
         Returns
         -------

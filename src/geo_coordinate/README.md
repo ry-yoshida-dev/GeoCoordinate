@@ -8,13 +8,15 @@ Array-based geographic coordinates on top of `units.Angle` and `units.Length`.
 
 | Component | Description |
 |-----------|-------------|
-| [base.py](./base.py) | `GeoCoordinateBase`, shared validation, haversine `distance_to`, bearings, destinations and sexagesimal output |
+| [base.py](./base.py) | `GeoCoordinateBase`, shared validation, haversine `distance_to`, bearings, destinations, `relocated` and sexagesimal output |
 | [coordinate.py](./coordinate.py) | `GeoCoordinate`, a single latitude, longitude and optional altitude |
 | [coordinates.py](./coordinates.py) | `GeoCoordinates`, an ordered batch with indexing, concatenation, path distances, bearings and altitude profiles |
 | [altitude.py](./altitude.py) | `Altitude`, signed heights relative to mean sea level |
+| [cartesian/](./cartesian/README.md) | `GeocentricConversion` and `LocalTangentPlane`, Earth-centred (ECEF) and east-north-up coordinates in meters |
+| [geodesic/](./geodesic/README.md) | `Geodesic`, distances, bearings, destinations and path lengths on a reference ellipsoid |
 | [bearing/](./bearing/README.md) | `Bearing` and `NorthReference`, directions clockwise from true or magnetic north |
 | [hemisphere/](./hemisphere/) | `LatitudeHemisphere` and `LongitudeHemisphere` enums of the `N` / `S` and `E` / `W` abbreviations |
-| [reference_system/](./reference_system/README.md) | `GeodeticCrs`, `JapanPlaneRectangularZone` and `WebMercator`, the datums and planar projections coordinates are measured in, and `Geoid`, the heights of geoid models above the ellipsoid |
+| [reference_system/](./reference_system/README.md) | `GeodeticCrs`, `Ellipsoid`, `JapanPlaneRectangularZone`, `UtmZone` and `WebMercator`, the datums and planar projections coordinates are measured in, `DatumTransformation` and `PlaneProjection` between them, and `Geoid`, the heights of geoid models above the ellipsoid |
 | [sexagesimal/](./sexagesimal/) | `SexagesimalNotation` parsing and formatting of texts such as `35°40'52.27"N` |
 
 ## Altitude
@@ -94,6 +96,10 @@ east = tokyo.destination(
     Length(value=np.array([1.0]), unit=LengthUnit.KM),
 )
 ```
+
+Ellipsoidal distances, accurate to nanometres instead of about 0.5 percent,
+come from `Geodesic` on the ellipsoid of the datum; see
+[geodesic/README.md](./geodesic/README.md).
 
 ## Altitude Profile
 

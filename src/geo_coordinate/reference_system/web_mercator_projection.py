@@ -14,11 +14,11 @@ EDGE_TOLERANCE_METRES: Final[float] = 1e-6
 
 class WebMercatorProjection:
     """
-    Projects longitudes and latitudes on WGS 84 to Web Mercator metres and back.
+    Projects longitudes and latitudes on WGS 84 to Web Mercator meters and back.
 
     Web maps are drawn on the Web Mercator plane, so anything placed there, such as an
     image warped onto the ground, lies on the map as computed. Distances on that plane
-    are stretched by `1 / cos(latitude)`, which `ground_scale` undoes to give metres on
+    are stretched by `1 / cos(latitude)`, which `ground_scale` undoes to give meters on
     the ground. Only the world square of the projection is accepted: latitudes within
     `latitude_limit` and points within `half_extent` of the origin.
 
@@ -53,7 +53,7 @@ class WebMercatorProjection:
         Returns
         -------
         NDArray[np.float64]
-            Eastings and northings in metres, of shape (N, 2).
+            Eastings and northings in meters, of shape (N, 2).
 
         Raises
         ------
@@ -79,7 +79,7 @@ class WebMercatorProjection:
         Parameters
         ----------
         points : NDArray[np.float64]
-            Eastings and northings in metres, of shape (N, 2).
+            Eastings and northings in meters, of shape (N, 2).
 
         Returns
         -------
@@ -95,14 +95,14 @@ class WebMercatorProjection:
             raise ValueError(f"points must be of shape (N, 2): {points.shape}")
         half_extent: float = self._projection.half_extent
         if np.any(np.abs(points) > half_extent + EDGE_TOLERANCE_METRES):
-            raise ValueError(f"points must lie within {half_extent} metres of the origin")
+            raise ValueError(f"points must lie within {half_extent} meters of the origin")
         longitude, latitude = self._inverse.transform(points[:, 0], points[:, 1])
         return np.column_stack([longitude, latitude]).astype(np.float64)
 
     @staticmethod
     def ground_scale(latitude: float) -> float:
         """
-        Return how many ground metres one Web Mercator metre spans at a latitude.
+        Return how many ground meters one Web Mercator metre spans at a latitude.
 
         The scale is that of the sphere the projection is defined on. Measured on the
         WGS 84 ellipsoid instead, ground distances differ from it by up to about 0.7%,

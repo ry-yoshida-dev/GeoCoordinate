@@ -86,6 +86,56 @@ class JapanPlaneRectangularZone(IntEnum):
         return GeodeticCrs.JGD2011
 
     @property
+    def number(self) -> int:
+        """
+        Return the number of the zone, as in 第IX系.
+
+        Returns
+        -------
+        int
+            The zone number, from 1 to 19.
+        """
+        return self.value - JapanPlaneRectangularZone.ZONE_1.value + 1
+
+    @property
+    def roman_numeral(self) -> str:
+        """
+        Return the number of the zone in Roman numerals, as the Survey Act writes it.
+
+        Returns
+        -------
+        str
+            The numeral, from `I` to `XIX`.
+        """
+        tens: str = "X" * (self.number // 10)
+        units: tuple[str, ...] = ("", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX")
+        return tens + units[self.number % 10]
+
+    @classmethod
+    def from_number(cls, number: int) -> JapanPlaneRectangularZone:
+        """
+        Return the zone of a number.
+
+        Parameters
+        ----------
+        number : int
+            The zone number, from 1 to 19.
+
+        Returns
+        -------
+        JapanPlaneRectangularZone
+            The zone.
+
+        Raises
+        ------
+        ValueError
+            If `number` is not between 1 and 19.
+        """
+        if not 1 <= number <= len(cls):
+            raise ValueError(f"zone number must be between 1 and {len(cls)}: {number}")
+        return cls(cls.ZONE_1.value + number - 1)
+
+    @property
     def central_meridian(self) -> Angle:
         """
         Return the east longitude of the zone origin.
