@@ -17,6 +17,7 @@ Array-based geographic coordinates on top of `units.Angle` and `units.Length`.
 | [bearing/](./bearing/README.md) | `Bearing` and `NorthReference`, directions clockwise from true or magnetic north |
 | [hemisphere/](./hemisphere/) | `LatitudeHemisphere` and `LongitudeHemisphere` enums of the `N` / `S` and `E` / `W` abbreviations |
 | [reference_system/](./reference_system/README.md) | `GeodeticCrs`, `Ellipsoid`, `JapanPlaneRectangularZone`, `UtmZone` and `WebMercator`, the datums and planar projections coordinates are measured in, `DatumTransformation` and `PlaneProjection` between them, and `Geoid`, the heights of geoid models above the ellipsoid |
+| [regional_mesh/](./regional_mesh/README.md) | `RegionalMeshLevel`, `RegionalMeshCode` and `RegionalMeshBounds`, the regional meshes of JIS X 0410 and their extents computed from their codes |
 | [sexagesimal/](./sexagesimal/) | `SexagesimalNotation` parsing and formatting of texts such as `35°40'52.27"N` |
 
 ## Altitude

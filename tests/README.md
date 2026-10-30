@@ -18,6 +18,7 @@ Pytest suite for `geo_coordinate`.
 | [test_plane_projection.py](./test_plane_projection.py) | Projection, round trips, datum shifts, scale factors and meridian convergence of `PlaneProjection`, and `PlaneCoordinates` |
 | [test_geodesic.py](./test_geodesic.py) | Ellipsoidal distances, bearings, direct solutions and path lengths of `Geodesic` |
 | [test_cartesian.py](./test_cartesian.py) | ECEF conversion of `GeocentricConversion` and east-north-up frames of `LocalTangentPlane` |
+| [test_regional_mesh.py](./test_regional_mesh.py) | Levels, exact extents, quarter digits, parents and children, the mesh a place lies in and validation of `RegionalMeshCode` |
 | [test_sexagesimal.py](./test_sexagesimal.py) | Parsing, formatting and validation of `SexagesimalNotation` |
 
 ## Example
