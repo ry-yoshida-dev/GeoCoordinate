@@ -153,6 +153,7 @@ class Geodesic:
             altitude = Altitude(
                 value=np.broadcast_to(start.altitude.value, (length,)).copy(),
                 unit=start.altitude.unit,
+                prefix=start.altitude.prefix,
             )
         return type(start)(
             latitude=Angle(value=np.asarray(latitude, dtype=np.float64), unit=AngleUnit.DEGREE),

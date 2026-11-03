@@ -84,7 +84,7 @@ north, the magnetic declination, depends on place and time.
 
 ```python
 import numpy as np
-from units import Length, LengthUnit
+from units import Length, LengthUnit, MetricPrefix
 
 from geo_coordinate import Bearing, GeoCoordinate
 
@@ -94,7 +94,7 @@ osaka = GeoCoordinate.from_degrees(34.7025, 135.4959)
 print(tokyo.initial_bearing_to(osaka).degree)  # [255.57...]
 east = tokyo.destination(
     Bearing.from_degrees(90.0),
-    Length(value=np.array([1.0]), unit=LengthUnit.KM),
+    Length(value=np.array([1.0]), unit=LengthUnit.M, prefix=MetricPrefix.KILO),
 )
 ```
 

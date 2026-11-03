@@ -1,13 +1,13 @@
 import numpy as np
 import pytest
-from units import Length, LengthUnit
+from units import Length, LengthUnit, MetricPrefix
 
 from geo_coordinate import Altitude
 
 
 class TestAltitude:
     def test_holds_signed_value(self) -> None:
-        altitude = Altitude(value=np.array([1.5, -0.2]), unit=LengthUnit.KM)
+        altitude = Altitude(value=np.array([1.5, -0.2]), unit=LengthUnit.M, prefix=MetricPrefix.KILO)
 
         assert np.allclose(altitude.meter, np.array([1500.0, -200.0]))
         assert altitude.is_below_sea_level.tolist() == [False, True]
@@ -23,6 +23,18 @@ class TestAltitude:
         altitude = Altitude(value=np.array([-40.5]), unit=LengthUnit.M)
 
         assert altitude.magnitude == Length(value=np.array([40.5]), unit=LengthUnit.M)
+
+    def test_keeps_prefix_of_magnitude(self) -> None:
+        magnitude = Length(value=np.array([1.5]), unit=LengthUnit.M, prefix=MetricPrefix.KILO)
+
+        altitude = Altitude.from_magnitude(magnitude, np.array([True]))
+
+        assert np.allclose(altitude.meter, np.array([-1500.0]))
+        assert altitude.magnitude == magnitude
+
+    def test_rejects_prefix_on_unit_without_prefixes(self) -> None:
+        with pytest.raises(ValueError, match="takes no prefix"):
+            Altitude(value=np.array([1.0]), unit=LengthUnit.FOOT, prefix=MetricPrefix.KILO)
 
     def test_rejects_mismatched_shapes(self) -> None:
         magnitude = Length(value=np.array([1.0]), unit=LengthUnit.M)

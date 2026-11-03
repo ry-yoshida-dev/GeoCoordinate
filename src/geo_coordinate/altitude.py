@@ -5,7 +5,7 @@ from typing import ClassVar
 
 import numpy as np
 from numpy.typing import NDArray
-from units import Length, LengthUnit, NumericArray
+from units import Length, LengthUnit, MetricPrefix, NumericArray
 
 
 @dataclass(eq=False)
@@ -22,10 +22,13 @@ class Altitude:
         The signed heights, one per coordinate.
     unit : LengthUnit
         The unit of `value`.
+    prefix : MetricPrefix
+        The prefix of `unit`, or `MetricPrefix.NONE` for the unit itself.
     """
 
     value: NumericArray
     unit: LengthUnit
+    prefix: MetricPrefix = MetricPrefix.NONE
 
     EQUALITY_TOLERANCE_METER: ClassVar[float] = 1e-9
 
@@ -34,6 +37,7 @@ class Altitude:
             raise ValueError("Altitude must be a 1D array")
         if not np.all(np.isfinite(self.value)):
             raise ValueError("Altitude must be finite")
+        self.unit.validate_prefix(self.prefix)
 
     @classmethod
     def from_magnitude(cls, magnitude: Length, is_below_sea_level: NDArray[np.bool_]) -> Altitude:
@@ -50,7 +54,7 @@ class Altitude:
         Returns
         -------
         Altitude
-            The signed altitudes, in the unit of `magnitude`.
+            The signed altitudes, in the unit and prefix of `magnitude`.
 
         Raises
         ------
@@ -63,7 +67,7 @@ class Altitude:
                 + f"given: {magnitude.value.shape} and {is_below_sea_level.shape}"
             )
         signed_value: NumericArray = np.where(is_below_sea_level, -magnitude.value, magnitude.value)
-        return cls(value=signed_value, unit=magnitude.unit)
+        return cls(value=signed_value, unit=magnitude.unit, prefix=magnitude.prefix)
 
     @property
     def meter(self) -> NumericArray:
@@ -75,7 +79,7 @@ class Altitude:
         NumericArray
             The altitudes in meters.
         """
-        return self.value * self.unit.to_meter
+        return self.unit.to_base(self.value, self.prefix)
 
     @property
     def magnitude(self) -> Length:
@@ -85,9 +89,9 @@ class Altitude:
         Returns
         -------
         Length
-            The unsigned heights, in the unit of this altitude.
+            The unsigned heights, in the unit and prefix of this altitude.
         """
-        return Length(value=np.abs(self.value), unit=self.unit)
+        return Length(value=np.abs(self.value), unit=self.unit, prefix=self.prefix)
 
     @property
     def is_below_sea_level(self) -> NDArray[np.bool_]:
@@ -112,4 +116,4 @@ class Altitude:
         )
 
     def __repr__(self) -> str:
-        return f"Altitude(value={self.value}, unit={self.unit})"
+        return f"Altitude(value={self.value}, unit={self.unit}, prefix={self.prefix})"

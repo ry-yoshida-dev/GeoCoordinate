@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from units import Angle, AngleUnit, Length, LengthUnit
+from units import Angle, AngleUnit, Length, LengthUnit, MetricPrefix
 
 from geo_coordinate import Altitude, Bearing, GeoCoordinate, GeoCoordinates, SexagesimalText
 
@@ -9,7 +9,7 @@ def make_track() -> GeoCoordinates:
     return GeoCoordinates.from_degrees(
         latitude=np.array([0.0, 0.0, 1.0]),
         longitude=np.array([0.0, 1.0, 1.0]),
-        altitude=Altitude(value=np.array([1.0, 2.0, 3.0]), unit=LengthUnit.KM),
+        altitude=Altitude(value=np.array([1.0, 2.0, 3.0]), unit=LengthUnit.M, prefix=MetricPrefix.KILO),
     )
 
 
@@ -17,13 +17,25 @@ ONE_DEGREE_METER = np.pi / 180 * GeoCoordinates.EARTH_MEAN_RADIUS.meter[0]
 
 
 class TestGeoCoordinates:
+    def test_indexing_keeps_altitude_prefix(self) -> None:
+        coordinates = GeoCoordinates.from_degrees(
+            latitude=np.array([1.0, 2.0]),
+            longitude=np.array([3.0, 4.0]),
+            altitude=Altitude(value=np.array([1.0, 2.0]), unit=LengthUnit.M, prefix=MetricPrefix.KILO),
+        )
+
+        selected = coordinates[1]
+
+        assert selected.altitude is not None
+        assert np.allclose(selected.altitude.meter, np.array([2000.0]))
+
     def test_returns_single_coordinate_for_integer_index(self) -> None:
         track = make_track()
 
         coordinate = track[-1]
 
         assert coordinate == GeoCoordinate.from_degrees(
-            1.0, 1.0, Altitude(value=np.array([3.0]), unit=LengthUnit.KM)
+            1.0, 1.0, Altitude(value=np.array([3.0]), unit=LengthUnit.M, prefix=MetricPrefix.KILO)
         )
 
     def test_returns_single_coordinate_for_numpy_integer_index(self) -> None:
@@ -39,7 +51,7 @@ class TestGeoCoordinates:
         assert track[1:] == GeoCoordinates.from_degrees(
             latitude=np.array([0.0, 1.0]),
             longitude=np.array([1.0, 1.0]),
-            altitude=Altitude(value=np.array([2.0, 3.0]), unit=LengthUnit.KM),
+            altitude=Altitude(value=np.array([2.0, 3.0]), unit=LengthUnit.M, prefix=MetricPrefix.KILO),
         )
 
     def test_returns_batch_for_mask(self) -> None:
@@ -156,7 +168,7 @@ class TestGeoCoordinates:
         track = make_track()
 
         assert track.segment_altitude_changes == Altitude(
-            value=np.array([1.0, 1.0]), unit=LengthUnit.KM
+            value=np.array([1.0, 1.0]), unit=LengthUnit.M, prefix=MetricPrefix.KILO
         )
         assert track.segment_slant_distances.meter == pytest.approx(
             [np.hypot(ONE_DEGREE_METER, 1000.0)] * 2

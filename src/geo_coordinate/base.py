@@ -187,6 +187,7 @@ class GeoCoordinateBase(ABC):
             altitude = Altitude(
                 value=np.broadcast_to(self.altitude.value, (length,)).copy(),
                 unit=self.altitude.unit,
+                prefix=self.altitude.prefix,
             )
         return type(self)(
             latitude=Angle(value=latitude_degree, unit=AngleUnit.DEGREE),
