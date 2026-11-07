@@ -2,22 +2,7 @@
 
 ## Overview
 
-The regional meshes (地域メッシュ) of JIS X 0410, the grid of latitudes and longitudes the
-statistics of Japan are tabulated on, such as the census per 1 km mesh. A mesh is named by its
-code alone, so its extent is computed from the code instead of read from boundary data.
-
-| Level | Digits | Extent (latitude × longitude) |
-| --- | --- | --- |
-| `FIRST` 第1次地域区画 | 4 | 40' × 1° |
-| `SECOND` 第2次地域区画 | 6 | 5' × 7'30" |
-| `THIRD` 基準地域メッシュ | 8 | 30" × 45" |
-| `HALF` 2分の1地域メッシュ | 9 | 15" × 22.5" |
-| `QUARTER` 4分の1地域メッシュ | 10 | 7.5" × 11.25" |
-| `EIGHTH` 8分の1地域メッシュ | 11 | 3.75" × 5.625" |
-
-Edges are kept as exact `Fraction`s of degrees, so `float(bounds.south)` is the floating-point
-number nearest to the true edge, and meshes sharing an edge share the same number. The grid
-itself is not tied to a datum; the edges are degrees on whichever datum the data is published in.
+The regional meshes (地域メッシュ) of JIS X 0410, from the first level (4 digits) to the eighth (11 digits), the grid the statistics of Japan are tabulated on. The extent of a mesh is computed from its code in exact degrees.
 
 ## Components
 

@@ -2,29 +2,7 @@
 
 ## Overview
 
-Lines and areas whose vertices are `GeoCoordinates`, such as roads, GPS tracks,
-administrative areas and towns, read from and written to GeoJSON (RFC 7946) geometries.
-
-| Type | GeoJSON | Description |
-|------|---------|-------------|
-| `GeoLineString` | `LineString` | Vertices in order, at least two |
-| `GeoLinearRing` | — | Closed outline or hole, stored without repeating the first vertex |
-| `GeoPolygon` | `Polygon` | Outline with optional holes |
-| `GeoMultiPolygon` | `MultiPolygon` | Separate polygons, such as a prefecture and its islands |
-| `GeoBoundingBox` | — | Range of latitudes and longitudes |
-
-`contains` tells which places lie inside a ring, polygon or multi polygon, vectorized over
-a `GeoCoordinates` batch and filtered by the bounding box first. Edges are straight lines
-in latitude and longitude, as in GeoJSON, so shapes must not cross the antimeridian, and
-places exactly on an edge may be reported either way.
-
-Lengths on a sphere come from `GeoLineString.length` and `GeoLinearRing.perimeter`.
-Areas and perimeters on an ellipsoid come from `Geodesic.area` and `Geodesic.perimeter`;
-see [../geodesic/README.md](../geodesic/README.md).
-
-GeoJSON positions with a third number are read into `Altitude` in meters and written back
-from it unchanged. RFC 7946 defines that number as the height above the WGS 84 ellipsoid,
-so convert with `Geoid` where the difference from mean sea level matters.
+Lines and areas whose vertices are `GeoCoordinates`, such as GPS tracks and administrative areas, with vectorized point-in-polygon tests and GeoJSON (RFC 7946) reading and writing.
 
 ## Components
 
@@ -70,6 +48,3 @@ places = GeoCoordinates.from_degrees(
 print(tokyo.contains(places))  # [ True False]
 print(json.dumps(GeoJsonGeometry.encode(tokyo.oriented()))[:40])
 ```
-
-The output above is from the administrative areas of Tokyo (国土数値情報 行政区域, January
-2025): 6,904 polygons with about 480,000 vertices, decoded in about 0.5 s.

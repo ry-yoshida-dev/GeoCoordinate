@@ -2,15 +2,7 @@
 
 ## Overview
 
-Cartesian frames in meters. `GeocentricConversion` turns latitude, longitude and height
-above the ellipsoid into Earth-centred, Earth-fixed (ECEF) coordinates and back, and
-`LocalTangentPlane` expresses places as east, north and up from an origin, as drones,
-robots and AR scenes expect. Both conversions are exact on the `Ellipsoid` given.
-
-Heights here are above the ellipsoid, as GNSS gives them, not above mean sea level as an
-`Altitude` is, so they are passed as arrays of meters; `Geoid.to_ellipsoidal_height` and
-`Geoid.to_altitude` convert between the two. `GeodeticPosition` pairs coordinates with such
-heights.
+Cartesian frames in meters: Earth-centred, Earth-fixed (ECEF) coordinates and east-north-up coordinates from an origin. Heights here are above the ellipsoid, as GNSS gives them; `Geoid` converts them to and from an `Altitude`.
 
 ## Components
 

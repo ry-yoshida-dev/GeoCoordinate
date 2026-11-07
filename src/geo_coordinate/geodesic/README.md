@@ -2,19 +2,7 @@
 
 ## Overview
 
-Shortest paths on a reference ellipsoid. `GeoCoordinateBase.distance_to` uses a sphere,
-which is off by up to about 0.5 percent; `Geodesic` solves on the ellipsoid of the datum
-instead, accurate to a few nanometres, with the algorithms of Karney (2013) as implemented
-by PROJ. Altitudes are ignored.
-
-| Member | Description |
-|--------|-------------|
-| `inverse(start, end)` | `GeodesicInverse`: lengths and the bearings at both ends, broadcast like `distance_to` |
-| `distance(start, end)` | Lengths only |
-| `direct(start, bearing, distance)` | Places reached, of the type of `start`, with altitudes carried over |
-| `segment_distances(path)`, `path_length(path)` | Along a `GeoCoordinates` path |
-| `area(shape)` | `Area` of a `GeoPolygon` or `GeoMultiPolygon`, holes subtracted |
-| `perimeter(shape)` | Length around a `GeoLinearRing`, `GeoPolygon` or `GeoMultiPolygon`, holes included |
+Distances, bearings, destinations, path lengths, areas and perimeters on a reference ellipsoid, accurate to a few nanometres instead of the about 0.5 percent of the spherical `distance_to`.
 
 ## Components
 
