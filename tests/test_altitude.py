@@ -7,7 +7,9 @@ from geo_coordinate import Altitude
 
 class TestAltitude:
     def test_holds_signed_value(self) -> None:
-        altitude = Altitude(value=np.array([1.5, -0.2]), unit=LengthUnit.M, prefix=MetricPrefix.KILO)
+        altitude = Altitude(
+            value=np.array([1.5, -0.2]), unit=LengthUnit.M, prefix=MetricPrefix.KILO
+        )
 
         assert np.allclose(altitude.meter, np.array([1500.0, -200.0]))
         assert altitude.is_below_sea_level.tolist() == [False, True]

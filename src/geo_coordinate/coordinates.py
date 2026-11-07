@@ -368,7 +368,9 @@ class GeoCoordinates(GeoCoordinateBase):
         altitude: Altitude | None = None
         if self.altitude is not None:
             altitude = Altitude(
-                value=self.altitude.value[selector], unit=self.altitude.unit, prefix=self.altitude.prefix
+                value=self.altitude.value[selector],
+                unit=self.altitude.unit,
+                prefix=self.altitude.prefix,
             )
         if isinstance(index, int | np.integer):
             return GeoCoordinate(latitude=latitude, longitude=longitude, altitude=altitude)

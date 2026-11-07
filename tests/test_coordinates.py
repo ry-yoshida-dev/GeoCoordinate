@@ -9,7 +9,9 @@ def make_track() -> GeoCoordinates:
     return GeoCoordinates.from_degrees(
         latitude=np.array([0.0, 0.0, 1.0]),
         longitude=np.array([0.0, 1.0, 1.0]),
-        altitude=Altitude(value=np.array([1.0, 2.0, 3.0]), unit=LengthUnit.M, prefix=MetricPrefix.KILO),
+        altitude=Altitude(
+            value=np.array([1.0, 2.0, 3.0]), unit=LengthUnit.M, prefix=MetricPrefix.KILO
+        ),
     )
 
 
@@ -21,7 +23,9 @@ class TestGeoCoordinates:
         coordinates = GeoCoordinates.from_degrees(
             latitude=np.array([1.0, 2.0]),
             longitude=np.array([3.0, 4.0]),
-            altitude=Altitude(value=np.array([1.0, 2.0]), unit=LengthUnit.M, prefix=MetricPrefix.KILO),
+            altitude=Altitude(
+                value=np.array([1.0, 2.0]), unit=LengthUnit.M, prefix=MetricPrefix.KILO
+            ),
         )
 
         selected = coordinates[1]
@@ -51,7 +55,9 @@ class TestGeoCoordinates:
         assert track[1:] == GeoCoordinates.from_degrees(
             latitude=np.array([0.0, 1.0]),
             longitude=np.array([1.0, 1.0]),
-            altitude=Altitude(value=np.array([2.0, 3.0]), unit=LengthUnit.M, prefix=MetricPrefix.KILO),
+            altitude=Altitude(
+                value=np.array([2.0, 3.0]), unit=LengthUnit.M, prefix=MetricPrefix.KILO
+            ),
         )
 
     def test_returns_batch_for_mask(self) -> None:
