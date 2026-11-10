@@ -19,7 +19,7 @@ classifiers = [
 dependencies = [
     "numpy",
     "pyproj>=3.6",
-    "units @ git+https://github.com/ry-yoshida-dev/Units.git",
+    "units @ git+https://github.com/ry-yoshida-dev/Units.git@main",
 ]
 
 [project.urls]

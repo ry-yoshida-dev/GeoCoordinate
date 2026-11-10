@@ -7,7 +7,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-10-31T12:56:34.976326Z"
+exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
 exclude-newer-span = "P7D"
 
 [[package]]
@@ -126,7 +126,7 @@ dev = [
 requires-dist = [
     { name = "numpy" },
     { name = "pyproj", specifier = ">=3.6" },
-    { name = "units", git = "https://github.com/ry-yoshida-dev/Units.git" },
+    { name = "units", git = "https://github.com/ry-yoshida-dev/Units.git?rev=main" },
 ]
 
 [package.metadata.requires-dev]
@@ -553,7 +553,8 @@ wheels = [
 [[package]]
 name = "units"
 version = "0.1.0"
-source = { git = "https://github.com/ry-yoshida-dev/Units.git#9ce054c2ff750fe5acf76f6a53a8f3ba8e27e195" }
+source = { git = "https://github.com/ry-yoshida-dev/Units.git?rev=main#f3b9a717ab2d7c86d29135a46e4eff89130e2e7b" }
 dependencies = [
     { name = "numpy" },
+    { name = "typing-extensions" },
 ]
