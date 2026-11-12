@@ -1,3 +1,5 @@
+from dataclasses import FrozenInstanceError
+
 import numpy as np
 import pytest
 from units import Angle, AngleUnit, Length, LengthUnit, MetricPrefix
@@ -19,6 +21,23 @@ ONE_DEGREE_METER = np.pi / 180 * GeoCoordinates.EARTH_MEAN_RADIUS.meter[0]
 
 
 class TestGeoCoordinates:
+    def test_is_not_changed_by_its_source_arrays(self) -> None:
+        latitude = np.array([1.0, 2.0])
+        coordinates = GeoCoordinates.from_degrees(latitude=latitude, longitude=np.zeros(2))
+
+        latitude[0] = 500.0
+
+        assert coordinates.latitude.degree.tolist() == [1.0, 2.0]
+
+    def test_rejects_changes_after_validation(self) -> None:
+        coordinates = GeoCoordinates.from_degrees(latitude=np.zeros(2), longitude=np.zeros(2))
+
+        with pytest.raises(ValueError, match="read-only"):
+            coordinates.latitude.value[0] = 500.0
+        attribute: str = "latitude"
+        with pytest.raises(FrozenInstanceError):
+            setattr(coordinates, attribute, Angle(value=np.zeros(2), unit=AngleUnit.DEGREE))
+
     def test_indexing_keeps_altitude_prefix(self) -> None:
         coordinates = GeoCoordinates.from_degrees(
             latitude=np.array([1.0, 2.0]),

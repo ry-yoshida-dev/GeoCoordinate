@@ -15,7 +15,7 @@ from .coordinate import GeoCoordinate
 from .sexagesimal import SexagesimalNotation
 
 
-@dataclass(eq=False, repr=False)
+@dataclass(frozen=True, eq=False, repr=False)
 class GeoCoordinates(GeoCoordinateBase):
     """
     A batch of geographic coordinates on the Earth.

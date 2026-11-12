@@ -10,7 +10,7 @@ from .base import GeoCoordinateBase
 from .sexagesimal import SexagesimalNotation
 
 
-@dataclass(eq=False, repr=False)
+@dataclass(frozen=True, eq=False, repr=False)
 class GeoCoordinate(GeoCoordinateBase):
     """
     A single geographic coordinate on the Earth.

@@ -67,7 +67,7 @@ class Geodesic:
         ValueError
             If both sides hold more than one coordinate and differ in length.
         """
-        length: int = self._broadcast_length(len(start), len(end))
+        length: int = GeoCoordinateBase.broadcast_length({"start": len(start), "end": len(end)})
         start_longitude, start_latitude = self._broadcast(start, length)
         end_longitude, end_latitude = self._broadcast(end, length)
         initial, final, distance = self._geod.inv(
@@ -137,7 +137,9 @@ class Geodesic:
         """
         if not bearing.is_true_north:
             raise ValueError("direct requires bearings measured from true north")
-        length: int = self._broadcast_length(len(start), len(bearing), len(distance.value))
+        length: int = GeoCoordinateBase.broadcast_length(
+            {"start": len(start), "bearing": len(bearing), "distance": len(distance.value)}
+        )
         start_longitude, start_latitude = self._broadcast(start, length)
         longitude, latitude, _ = self._geod.fwd(
             start_longitude,
@@ -149,13 +151,9 @@ class Geodesic:
         wrapped_longitude: NDArray[np.float64] = (
             np.mod(np.asarray(longitude, dtype=np.float64) + 180.0, 360.0) - 180.0
         )
-        altitude: Altitude | None = None
-        if start.altitude is not None:
-            altitude = Altitude(
-                value=np.broadcast_to(start.altitude.value, (length,)).copy(),
-                unit=start.altitude.unit,
-                prefix=start.altitude.prefix,
-            )
+        altitude: Altitude | None = (
+            None if start.altitude is None else start.altitude.broadcast_to(length)
+        )
         return type(start)(
             latitude=Angle(value=np.asarray(latitude, dtype=np.float64), unit=AngleUnit.DEGREE),
             longitude=Angle(value=wrapped_longitude, unit=AngleUnit.DEGREE),
@@ -275,33 +273,6 @@ class Geodesic:
             ring.vertices.latitude.degree.astype(np.float64),
         )
         return abs(float(area))
-
-    @staticmethod
-    def _broadcast_length(*lengths: int) -> int:
-        """
-        Length that arrays of the given lengths broadcast to.
-
-        Parameters
-        ----------
-        *lengths : int
-            The lengths of the arrays.
-
-        Returns
-        -------
-        int
-            The common length other than one, or one if all lengths are one.
-
-        Raises
-        ------
-        ValueError
-            If more than one distinct length other than one is given.
-        """
-        distinct_lengths: set[int] = {length for length in lengths if length != 1}
-        if len(distinct_lengths) > 1:
-            raise ValueError(
-                f"arguments must have the same length or a single element, given: {lengths}"
-            )
-        return distinct_lengths.pop() if distinct_lengths else 1
 
     @staticmethod
     def _broadcast(coordinates: GeoCoordinateBase, length: int) -> NDArray[np.float64]:

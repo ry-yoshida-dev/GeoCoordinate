@@ -18,6 +18,13 @@ OSAKA = GeoCoordinate.from_degrees(34.7025, 135.4959)
 
 
 class TestGeodesic:
+    def test_names_the_arguments_that_do_not_broadcast(self) -> None:
+        start = GeoCoordinates.from_degrees(latitude=np.zeros(2), longitude=np.zeros(2))
+        end = GeoCoordinates.from_degrees(latitude=np.zeros(3), longitude=np.zeros(3))
+
+        with pytest.raises(ValueError, match="start, end must have the same length"):
+            Geodesic().distance(start, end)
+
     def test_distance_matches_pyproj_on_grs80(self) -> None:
         _, _, expected = Geod(ellps="GRS80").inv(139.7671, 35.6812, 135.4959, 34.7025)
 

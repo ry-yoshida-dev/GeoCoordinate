@@ -12,12 +12,14 @@ from .bearing import Bearing
 from .sexagesimal import SexagesimalNotation, SexagesimalText
 
 
-@dataclass(eq=False)
+@dataclass(frozen=True, eq=False)
 class GeoCoordinateBase(ABC):
     """
     Abstract geographic coordinates on the Earth, stored as 1D arrays.
 
-    Subclasses decide how many coordinates the arrays may hold.
+    Subclasses decide how many coordinates the arrays may hold. The angles are
+    copied into read-only arrays, so later changes to the arrays they were built
+    from do not bypass the validation.
 
     Parameters
     ----------
@@ -36,6 +38,8 @@ class GeoCoordinateBase(ABC):
     EARTH_MEAN_RADIUS: ClassVar[Length] = Length(value=np.array([6_371_008.8]), unit=LengthUnit.M)
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, "latitude", self._read_only_angle(self.latitude))
+        object.__setattr__(self, "longitude", self._read_only_angle(self.longitude))
         if len(self.latitude) != len(self.longitude):
             raise ValueError(
                 "latitude and longitude must have the same length, "
@@ -90,7 +94,7 @@ class GeoCoordinateBase(ABC):
         ValueError
             If both sides hold more than one coordinate and differ in length.
         """
-        self._broadcast_length({"coordinates": len(self), "other": len(other)})
+        self.broadcast_length({"coordinates": len(self), "other": len(other)})
         return self._surface_distance(
             self.latitude.radian,
             self.longitude.radian,
@@ -121,7 +125,7 @@ class GeoCoordinateBase(ABC):
         ValueError
             If both sides hold more than one coordinate and differ in length.
         """
-        self._broadcast_length({"coordinates": len(self), "other": len(other)})
+        self.broadcast_length({"coordinates": len(self), "other": len(other)})
         return self._initial_bearing(
             self.latitude.radian,
             self.longitude.radian,
@@ -159,7 +163,7 @@ class GeoCoordinateBase(ABC):
         """
         if not bearing.is_true_north:
             raise ValueError("destination requires bearings measured from true north")
-        length: int = self._broadcast_length(
+        length: int = self.broadcast_length(
             {
                 "coordinates": len(self),
                 "bearing": len(bearing),
@@ -182,13 +186,9 @@ class GeoCoordinateBase(ABC):
         )
         longitude_degree: NumericArray = np.mod(np.degrees(longitude_to) + 180, 360) - 180
         latitude_degree: NumericArray = np.degrees(latitude_to)
-        altitude: Altitude | None = None
-        if self.altitude is not None:
-            altitude = Altitude(
-                value=np.broadcast_to(self.altitude.value, (length,)).copy(),
-                unit=self.altitude.unit,
-                prefix=self.altitude.prefix,
-            )
+        altitude: Altitude | None = (
+            None if self.altitude is None else self.altitude.broadcast_to(length)
+        )
         return type(self)(
             latitude=Angle(value=latitude_degree, unit=AngleUnit.DEGREE),
             longitude=Angle(value=longitude_degree, unit=AngleUnit.DEGREE),
@@ -254,9 +254,11 @@ class GeoCoordinateBase(ABC):
         )
 
     @staticmethod
-    def _broadcast_length(lengths: dict[str, int]) -> int:
+    def broadcast_length(lengths: dict[str, int]) -> int:
         """
         Length that arrays of the given lengths broadcast to.
+
+        Arrays of a single element broadcast against arrays of any length.
 
         Parameters
         ----------
@@ -281,6 +283,25 @@ class GeoCoordinateBase(ABC):
                 + f"given: {given}"
             )
         return distinct_lengths.pop() if distinct_lengths else 1
+
+    @staticmethod
+    def _read_only_angle(angle: Angle) -> Angle:
+        """
+        Copy of an angle whose values cannot be changed in place.
+
+        Parameters
+        ----------
+        angle : Angle
+            The angle to copy.
+
+        Returns
+        -------
+        Angle
+            The angle in the same unit and prefix, backed by a read-only copy.
+        """
+        value: NumericArray = np.array(angle.value, copy=True)
+        value.setflags(write=False)
+        return Angle(value=value, unit=angle.unit, prefix=angle.prefix)
 
     @staticmethod
     def _initial_bearing(

@@ -8,10 +8,10 @@ Array-based geographic coordinates on top of `units.Angle` and `units.Length`. E
 
 | Component | Description |
 |-----------|-------------|
-| [base.py](./base.py) | `GeoCoordinateBase`, shared validation, haversine `distance_to`, bearings, destinations, `relocated` and sexagesimal output |
+| [base.py](./base.py) | `GeoCoordinateBase`, shared validation into read-only copies, broadcasting of lengths, haversine `distance_to`, bearings, destinations, `relocated` and sexagesimal output |
 | [coordinate.py](./coordinate.py) | `GeoCoordinate`, a single latitude, longitude and optional altitude |
 | [coordinates.py](./coordinates.py) | `GeoCoordinates`, an ordered batch with indexing, concatenation, path distances, bearings and altitude profiles |
-| [altitude.py](./altitude.py) | `Altitude`, signed heights relative to mean sea level |
+| [altitude.py](./altitude.py) | `Altitude`, read-only signed heights relative to mean sea level, broadcast to a length |
 | [cartesian/](./cartesian/README.md) | `GeocentricConversion` and `LocalTangentPlane`, Earth-centred (ECEF) and east-north-up coordinates in meters |
 | [geodesic/](./geodesic/README.md) | `Geodesic`, distances, bearings, destinations and path lengths on a reference ellipsoid |
 | [bearing/](./bearing/README.md) | `Bearing` and `NorthReference`, directions clockwise from true or magnetic north |

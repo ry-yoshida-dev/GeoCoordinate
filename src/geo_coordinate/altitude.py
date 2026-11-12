@@ -8,13 +8,15 @@ from numpy.typing import NDArray
 from units import Length, LengthUnit, MetricPrefix, NumericArray
 
 
-@dataclass(eq=False)
+@dataclass(frozen=True, eq=False)
 class Altitude:
     """
     Container class for signed heights relative to mean sea level.
 
     Unlike `units.Length`, which only holds magnitudes, the value is signed:
-    positive above sea level and negative below it.
+    positive above sea level and negative below it. The value is copied into a
+    read-only array, so later changes to the array it was built from do not bypass
+    the validation.
 
     Parameters
     ----------
@@ -33,6 +35,9 @@ class Altitude:
     EQUALITY_TOLERANCE_METER: ClassVar[float] = 1e-9
 
     def __post_init__(self) -> None:
+        value: NumericArray = np.array(self.value, copy=True)
+        value.setflags(write=False)
+        object.__setattr__(self, "value", value)
         if self.value.ndim != 1:
             raise ValueError("Altitude must be a 1D array")
         if not np.all(np.isfinite(self.value)):
@@ -68,6 +73,31 @@ class Altitude:
             )
         signed_value: NumericArray = np.where(is_below_sea_level, -magnitude.value, magnitude.value)
         return cls(value=signed_value, unit=magnitude.unit, prefix=magnitude.prefix)
+
+    def broadcast_to(self, length: int) -> Altitude:
+        """
+        Repeat a single altitude, or keep as many altitudes as given, to a length.
+
+        Parameters
+        ----------
+        length : int
+            The number of altitudes to return.
+
+        Returns
+        -------
+        Altitude
+            The altitudes, in the same unit and prefix.
+
+        Raises
+        ------
+        ValueError
+            If this holds more than one altitude and their number differs from `length`.
+        """
+        return Altitude(
+            value=np.broadcast_to(self.value, (length,)),
+            unit=self.unit,
+            prefix=self.prefix,
+        )
 
     @property
     def meter(self) -> NumericArray:

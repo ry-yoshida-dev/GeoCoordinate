@@ -6,6 +6,30 @@ from geo_coordinate import Altitude
 
 
 class TestAltitude:
+    def test_is_not_changed_by_its_source_array(self) -> None:
+        value = np.array([1.0, 2.0])
+        altitude = Altitude(value=value, unit=LengthUnit.M)
+
+        value[0] = np.inf
+
+        assert altitude.meter.tolist() == [1.0, 2.0]
+        with pytest.raises(ValueError, match="read-only"):
+            altitude.value[0] = np.inf
+
+    def test_broadcasts_a_single_altitude(self) -> None:
+        altitude = Altitude(value=np.array([1.5]), unit=LengthUnit.M, prefix=MetricPrefix.KILO)
+
+        broadcast = altitude.broadcast_to(3)
+
+        assert broadcast.prefix is MetricPrefix.KILO
+        assert broadcast.meter.tolist() == [1500.0, 1500.0, 1500.0]
+
+    def test_rejects_broadcast_to_another_length(self) -> None:
+        altitude = Altitude(value=np.array([1.0, 2.0]), unit=LengthUnit.M)
+
+        with pytest.raises(ValueError):
+            altitude.broadcast_to(3)
+
     def test_holds_signed_value(self) -> None:
         altitude = Altitude(
             value=np.array([1.5, -0.2]), unit=LengthUnit.M, prefix=MetricPrefix.KILO
