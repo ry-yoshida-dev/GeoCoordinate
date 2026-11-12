@@ -76,8 +76,9 @@ class JapanPlaneRectangularZone:
     the Survey Act Enforcement Order is a transverse Mercator projection, and
     distortion stays below roughly 1 part in 10000 within a zone.
 
-    The zones are defined on JGD2011 today, on JGD2000 from 2002 until the 2011 Tohoku
-    earthquake, and on Tokyo Datum before 2002. All use the same origins and scale
+    The zones are defined on JGD2011 today, on JGD2000 from April 2002 until JGD2011
+    took effect in October 2011 after the Tohoku earthquake, and on Tokyo Datum before
+    April 2002. All use the same origins and scale
     factor, so the same zone number on any of them projects the same latitudes and
     longitudes to the same plane; but the same place has latitudes and longitudes about
     400 m apart on Tokyo Datum and on JGD2011, and so plane coordinates about as far

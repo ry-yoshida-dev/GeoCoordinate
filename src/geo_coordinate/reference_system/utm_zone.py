@@ -43,7 +43,9 @@ class UtmZone:
 
     The zones are defined on WGS 84 worldwide. The northern zones 51 to 55, which
     cover Japan, are also defined on JGD2011, JGD2000 and Tokyo Datum, as used by
-    Japanese topographic maps.
+    Japanese topographic maps. Minamitorishima, at about 154 degrees east, lies in
+    zone 56, which no Japanese datum defines; use WGS 84 or a Japan Plane
+    Rectangular zone there.
 
     Parameters
     ----------
