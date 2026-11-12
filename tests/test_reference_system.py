@@ -17,7 +17,13 @@ from geo_coordinate import (
 ALL_MEMBERS: list[CoordinateReferenceSystem] = [
     *GeodeticCrs,
     *JapanPlaneRectangularZone.zones(),
+    *JapanPlaneRectangularZone.zones(GeodeticCrs.JGD2000),
     *JapanPlaneRectangularZone.zones(GeodeticCrs.TOKYO),
+    *(
+        UtmZone(number=number, hemisphere=LatitudeHemisphere.NORTH, geodetic_crs=datum)
+        for datum in (GeodeticCrs.JGD2011, GeodeticCrs.JGD2000, GeodeticCrs.TOKYO)
+        for number in range(51, 56)
+    ),
     *WebMercator,
     UtmZone(number=31, hemisphere=LatitudeHemisphere.NORTH),
     UtmZone(number=56, hemisphere=LatitudeHemisphere.SOUTH),
@@ -63,7 +69,9 @@ class TestJapanPlaneRectangularZone:
         assert JapanPlaneRectangularZone(1).central_meridian.degree[0] == pytest.approx(129.5)
         assert JapanPlaneRectangularZone(19).central_meridian.degree[0] == pytest.approx(154.0)
 
-    @pytest.mark.parametrize("datum", [GeodeticCrs.JGD2011, GeodeticCrs.TOKYO], ids=str)
+    @pytest.mark.parametrize(
+        "datum", [GeodeticCrs.JGD2011, GeodeticCrs.JGD2000, GeodeticCrs.TOKYO], ids=str
+    )
     def test_central_meridians_match_the_epsg_definitions(self, datum: GeodeticCrs) -> None:
         for zone in JapanPlaneRectangularZone.zones(datum):
             operation = zone.crs.coordinate_operation
@@ -245,6 +253,25 @@ class TestUtmZone:
         assert UtmZone.from_crs(JapanPlaneRectangularZone(9).crs) is None
         assert UtmZone.from_crs(CRS.from_epsg(25831)) is None
 
+    def test_zones_over_japan_on_japanese_datums(self) -> None:
+        tokyo_station = GeoCoordinate.from_degrees(35.6812, 139.7671)
+        assert UtmZone.containing(tokyo_station, GeodeticCrs.JGD2011).epsg == 6691
+        assert UtmZone.containing(tokyo_station, GeodeticCrs.JGD2000).epsg == 3100
+        assert UtmZone.containing(tokyo_station, GeodeticCrs.TOKYO).epsg == 3095
+        assert UtmZone.from_crs(CRS.from_epsg(6691)) == UtmZone(
+            number=54, hemisphere=LatitudeHemisphere.NORTH, geodetic_crs=GeodeticCrs.JGD2011
+        )
+
+    def test_rejects_zones_a_japanese_datum_does_not_define(self) -> None:
+        with pytest.raises(ValueError, match="northern zones 51 to 55 only"):
+            UtmZone(
+                number=31, hemisphere=LatitudeHemisphere.NORTH, geodetic_crs=GeodeticCrs.JGD2011
+            )
+        with pytest.raises(ValueError, match="northern zones 51 to 55 only"):
+            UtmZone(number=54, hemisphere=LatitudeHemisphere.SOUTH, geodetic_crs=GeodeticCrs.TOKYO)
+        with pytest.raises(ValueError, match="northern zones 51 to 55 only"):
+            UtmZone.containing(GeoCoordinate.from_degrees(48.857, 2.352), GeodeticCrs.JGD2011)
+
     def test_rejects_numbers_outside_the_sixty_zones(self) -> None:
         with pytest.raises(ValueError, match="between 1 and 60"):
             UtmZone(number=0, hemisphere=LatitudeHemisphere.NORTH)
@@ -284,16 +311,19 @@ class TestJapanPlaneRectangularZoneNumber:
         assert JapanPlaneRectangularZone(1, GeodeticCrs.TOKYO).epsg == 30161
         assert JapanPlaneRectangularZone(9, GeodeticCrs.TOKYO).epsg == 30169
         assert JapanPlaneRectangularZone(19, GeodeticCrs.TOKYO).epsg == 30179
+        assert JapanPlaneRectangularZone(9, GeodeticCrs.JGD2000).epsg == 2451
         assert JapanPlaneRectangularZone(9).epsg == 6677
 
-    @pytest.mark.parametrize("datum", [GeodeticCrs.JGD2011, GeodeticCrs.TOKYO], ids=str)
+    @pytest.mark.parametrize(
+        "datum", [GeodeticCrs.JGD2011, GeodeticCrs.JGD2000, GeodeticCrs.TOKYO], ids=str
+    )
     def test_identifies_its_zones(self, datum: GeodeticCrs) -> None:
         for zone in JapanPlaneRectangularZone.zones(datum):
             assert JapanPlaneRectangularZone.from_crs(zone.crs) == zone
 
     def test_identifies_no_other_crs(self) -> None:
         assert JapanPlaneRectangularZone.from_crs(GeodeticCrs.TOKYO.crs) is None
-        assert JapanPlaneRectangularZone.from_crs(CRS.from_epsg(2451)) is None
+        assert JapanPlaneRectangularZone.from_crs(CRS.from_epsg(2462)) is None
         assert JapanPlaneRectangularZone.from_crs(CRS.from_epsg(32654)) is None
 
     def test_rejects_numbers_outside_the_nineteen_zones(self) -> None:
@@ -301,7 +331,7 @@ class TestJapanPlaneRectangularZoneNumber:
             JapanPlaneRectangularZone(20)
 
     def test_rejects_datums_without_zones(self) -> None:
-        with pytest.raises(ValueError, match="JGD2011 and Tokyo Datum only"):
+        with pytest.raises(ValueError, match="JGD2011, JGD2000 and Tokyo Datum only"):
             JapanPlaneRectangularZone(9, GeodeticCrs.WGS84)
 
     def test_nearest_zone_on_tokyo_datum(self) -> None:

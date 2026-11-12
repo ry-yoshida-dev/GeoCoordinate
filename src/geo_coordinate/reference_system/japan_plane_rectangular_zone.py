@@ -11,8 +11,13 @@ from ..coordinate import GeoCoordinate
 from .geodetic_crs import GeodeticCrs
 
 ZONE_COUNT: Final[int] = 19
-JGD2011_EPSG_BASE: Final[int] = 6668
-TOKYO_EPSG_BASE: Final[int] = 30160
+
+# The EPSG code of each zone is the base of its datum plus the zone number.
+EPSG_BASES: Final[dict[GeodeticCrs, int]] = {
+    GeodeticCrs.JGD2011: 6668,
+    GeodeticCrs.JGD2000: 2442,
+    GeodeticCrs.TOKYO: 30160,
+}
 
 # Central meridians east of Greenwich in degrees and minutes, by zone number.
 CENTRAL_MERIDIANS: Final[tuple[tuple[int, int], ...]] = (
@@ -71,11 +76,13 @@ class JapanPlaneRectangularZone:
     the Survey Act Enforcement Order is a transverse Mercator projection, and
     distortion stays below roughly 1 part in 10000 within a zone.
 
-    The zones are defined on JGD2011 today, and were on Tokyo Datum before the Survey
-    Act moved to JGD2000 in 2002. Both use the same origins and scale factor, so the
-    same zone number on either datum projects the same latitudes and longitudes to the
-    same plane; but the same place has latitudes and longitudes about 400 m apart on
-    the two datums, and so plane coordinates about as far apart.
+    The zones are defined on JGD2011 today, on JGD2000 from 2002 until the 2011 Tohoku
+    earthquake, and on Tokyo Datum before 2002. All use the same origins and scale
+    factor, so the same zone number on any of them projects the same latitudes and
+    longitudes to the same plane; but the same place has latitudes and longitudes about
+    400 m apart on Tokyo Datum and on JGD2011, and so plane coordinates about as far
+    apart. JGD2000 and JGD2011 differ only where the earthquake moved the ground, by up
+    to about 5 m.
 
     The Ministry of Land, Infrastructure, Transport and Tourism notice of 2002
     (平成14年国土交通省告示第9号) assigns each zone its area. Zones I to XIII cover
@@ -91,14 +98,12 @@ class JapanPlaneRectangularZone:
     number : int
         The zone number, from 1 to 19, as in 第IX系.
     geodetic_crs : GeodeticCrs
-        The datum the zone is defined on: JGD2011, or Tokyo Datum for data surveyed
-        before 2002.
+        The datum the zone is defined on: JGD2011, JGD2000 or Tokyo Datum.
 
     Raises
     ------
     ValueError
-        If `number` is not between 1 and 19, or `geodetic_crs` is neither JGD2011 nor
-        Tokyo Datum.
+        If `number` is not between 1 and 19, or no zones are defined on `geodetic_crs`.
     """
 
     number: int
@@ -107,9 +112,9 @@ class JapanPlaneRectangularZone:
     def __post_init__(self) -> None:
         if not 1 <= self.number <= ZONE_COUNT:
             raise ValueError(f"zone number must be between 1 and {ZONE_COUNT}: {self.number}")
-        if self.geodetic_crs not in (GeodeticCrs.JGD2011, GeodeticCrs.TOKYO):
+        if self.geodetic_crs not in EPSG_BASES:
             raise ValueError(
-                "zones are defined on JGD2011 and Tokyo Datum only, given: "
+                "zones are defined on JGD2011, JGD2000 and Tokyo Datum only, given: "
                 + self.geodetic_crs.label
             )
 
@@ -123,7 +128,7 @@ class JapanPlaneRectangularZone:
         Parameters
         ----------
         geodetic_crs : GeodeticCrs
-            JGD2011 or Tokyo Datum.
+            JGD2011, JGD2000 or Tokyo Datum.
 
         Returns
         -------
@@ -133,7 +138,7 @@ class JapanPlaneRectangularZone:
         Raises
         ------
         ValueError
-            If `geodetic_crs` is neither JGD2011 nor Tokyo Datum.
+            If no zones are defined on `geodetic_crs`.
         """
         return tuple(cls(number, geodetic_crs) for number in range(1, ZONE_COUNT + 1))
 
@@ -150,16 +155,12 @@ class JapanPlaneRectangularZone:
         Returns
         -------
         JapanPlaneRectangularZone | None
-            The zone whose EPSG code the CRS has, or None for any other CRS, including
-            the zones on JGD2000.
+            The zone whose EPSG code the CRS has, or None for any other CRS.
         """
         epsg = crs.to_epsg()
         if epsg is None:
             return None
-        for base, geodetic_crs in (
-            (JGD2011_EPSG_BASE, GeodeticCrs.JGD2011),
-            (TOKYO_EPSG_BASE, GeodeticCrs.TOKYO),
-        ):
+        for geodetic_crs, base in EPSG_BASES.items():
             if 1 <= epsg - base <= ZONE_COUNT:
                 return cls(epsg - base, geodetic_crs)
         return None
@@ -172,14 +173,10 @@ class JapanPlaneRectangularZone:
         Returns
         -------
         int
-            6669 to 6687 on JGD2011 and 30161 to 30179 on Tokyo Datum, from zone I to
-            XIX.
+            6669 to 6687 on JGD2011, 2443 to 2461 on JGD2000 and 30161 to 30179 on
+            Tokyo Datum, from zone I to XIX.
         """
-        match self.geodetic_crs:
-            case GeodeticCrs.TOKYO:
-                return TOKYO_EPSG_BASE + self.number
-            case _:
-                return JGD2011_EPSG_BASE + self.number
+        return EPSG_BASES[self.geodetic_crs] + self.number
 
     @property
     def crs(self) -> CRS:
@@ -267,7 +264,7 @@ class JapanPlaneRectangularZone:
         location : GeoCoordinate
             The location to measure around, such as the centre of a dataset.
         geodetic_crs : GeodeticCrs
-            The datum of the zone to choose, JGD2011 or Tokyo Datum.
+            The datum of the zone to choose, JGD2011, JGD2000 or Tokyo Datum.
 
         Returns
         -------
@@ -277,7 +274,7 @@ class JapanPlaneRectangularZone:
         Raises
         ------
         ValueError
-            If `geodetic_crs` is neither JGD2011 nor Tokyo Datum.
+            If no zones are defined on `geodetic_crs`.
         """
         return min(
             cls.zones(geodetic_crs),

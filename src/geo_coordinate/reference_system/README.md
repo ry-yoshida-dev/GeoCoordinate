@@ -14,8 +14,8 @@ Coordinate reference systems by EPSG code (`GeodeticCrs`, `JapanPlaneRectangular
 | [datum_transformation.py](./datum_transformation.py) | `DatumTransformation`: coordinates from one datum to another by the most accurate route of known accuracy, and the grids it lacks for better ones |
 | [plane_coordinates.py](./plane_coordinates.py) | `PlaneCoordinates`: eastings and northings on a projected CRS, with the X and Y of Japanese surveying |
 | [plane_projection.py](./plane_projection.py) | `PlaneProjection`: coordinates onto any projected CRS and back, from any datum, with meridian convergence and scale factors |
-| [japan_plane_rectangular_zone.py](./japan_plane_rectangular_zone.py) | `JapanPlaneRectangularZone`: the nineteen zones of the Japan Plane Rectangular Coordinate System on JGD2011 or Tokyo Datum, their numbers, origins, the zone nearest to a location and whether any zone covers it |
-| [utm_zone.py](./utm_zone.py) | `UtmZone`: the zones of the Universal Transverse Mercator system and the zone a location lies in |
+| [japan_plane_rectangular_zone.py](./japan_plane_rectangular_zone.py) | `JapanPlaneRectangularZone`: the nineteen zones of the Japan Plane Rectangular Coordinate System on JGD2011, JGD2000 or Tokyo Datum, their numbers, origins, the zone nearest to a location and whether any zone covers it |
+| [utm_zone.py](./utm_zone.py) | `UtmZone`: the zones of the Universal Transverse Mercator system on WGS 84, and over Japan on JGD2011, JGD2000 and Tokyo Datum, and the zone a location lies in |
 | [geoid_model.py](./geoid_model.py) | `GeoidModel`: the Japanese geoids 2011 and 2024 and the global EGM96 and EGM2008, with the grid each is published as |
 | [geoid.py](./geoid.py) | `Geoid`: heights of the geoid above the ellipsoid, interpolated from the local grid of a model, and the conversion between altitudes and ellipsoidal heights |
 | [web_mercator.py](./web_mercator.py) | `WebMercator`: EPSG:3857 (`PSEUDO_MERCATOR`), the extent of its world square and the latitude where it ends |
