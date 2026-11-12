@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from enum import IntEnum
+from dataclasses import dataclass
+from typing import Final
 
 import numpy as np
 from pyproj import CRS
@@ -9,15 +10,72 @@ from units import Angle, AngleUnit, DegreesMinutesSeconds
 from ..coordinate import GeoCoordinate
 from .geodetic_crs import GeodeticCrs
 
+ZONE_COUNT: Final[int] = 19
+JGD2011_EPSG_BASE: Final[int] = 6668
+TOKYO_EPSG_BASE: Final[int] = 30160
 
-class JapanPlaneRectangularZone(IntEnum):
+# Central meridians east of Greenwich in degrees and minutes, by zone number.
+CENTRAL_MERIDIANS: Final[tuple[tuple[int, int], ...]] = (
+    (129, 30),
+    (131, 0),
+    (132, 10),
+    (133, 30),
+    (134, 20),
+    (136, 0),
+    (137, 10),
+    (138, 30),
+    (139, 50),
+    (140, 50),
+    (140, 15),
+    (142, 15),
+    (144, 15),
+    (142, 0),
+    (127, 30),
+    (124, 0),
+    (131, 0),
+    (136, 0),
+    (154, 0),
+)
+
+# Origin latitudes north of the equator in degrees, by zone number.
+ORIGIN_LATITUDES: Final[tuple[float, ...]] = (
+    33.0,
+    33.0,
+    36.0,
+    33.0,
+    36.0,
+    36.0,
+    36.0,
+    36.0,
+    36.0,
+    40.0,
+    44.0,
+    44.0,
+    44.0,
+    26.0,
+    26.0,
+    26.0,
+    26.0,
+    20.0,
+    26.0,
+)
+
+
+@dataclass(frozen=True)
+class JapanPlaneRectangularZone:
     """
-    Zone of the Japan Plane Rectangular Coordinate System on JGD2011.
+    Zone of the Japan Plane Rectangular Coordinate System.
 
     Geographic coordinates are measured in degrees, so lengths and areas must
-    be computed on a projected system instead. Each member is the EPSG code of
-    one of the nineteen zones defined by the Survey Act Enforcement Order, and
+    be computed on a projected system instead. Each of the nineteen zones defined by
+    the Survey Act Enforcement Order is a transverse Mercator projection, and
     distortion stays below roughly 1 part in 10000 within a zone.
+
+    The zones are defined on JGD2011 today, and were on Tokyo Datum before the Survey
+    Act moved to JGD2000 in 2002. Both use the same origins and scale factor, so the
+    same zone number on either datum projects the same latitudes and longitudes to the
+    same plane; but the same place has latitudes and longitudes about 400 m apart on
+    the two datums, and so plane coordinates about as far apart.
 
     The Ministry of Land, Infrastructure, Transport and Tourism notice of 2002
     (平成14年国土交通省告示第9号) assigns each zone its area. Zones I to XIII cover
@@ -27,27 +85,84 @@ class JapanPlaneRectangularZone(IntEnum):
     XVII its islands west of 126 and east of 130 degrees east. Zones XIV, XVIII
     and XIX cover the islands of Tokyo south of 28 degrees north: Ogasawara,
     Okinotorishima and Minamitorishima respectively.
+
+    Parameters
+    ----------
+    number : int
+        The zone number, from 1 to 19, as in 第IX系.
+    geodetic_crs : GeodeticCrs
+        The datum the zone is defined on: JGD2011, or Tokyo Datum for data surveyed
+        before 2002.
+
+    Raises
+    ------
+    ValueError
+        If `number` is not between 1 and 19, or `geodetic_crs` is neither JGD2011 nor
+        Tokyo Datum.
     """
 
-    ZONE_1 = 6669
-    ZONE_2 = 6670
-    ZONE_3 = 6671
-    ZONE_4 = 6672
-    ZONE_5 = 6673
-    ZONE_6 = 6674
-    ZONE_7 = 6675
-    ZONE_8 = 6676
-    ZONE_9 = 6677
-    ZONE_10 = 6678
-    ZONE_11 = 6679
-    ZONE_12 = 6680
-    ZONE_13 = 6681
-    ZONE_14 = 6682
-    ZONE_15 = 6683
-    ZONE_16 = 6684
-    ZONE_17 = 6685
-    ZONE_18 = 6686
-    ZONE_19 = 6687
+    number: int
+    geodetic_crs: GeodeticCrs = GeodeticCrs.JGD2011
+
+    def __post_init__(self) -> None:
+        if not 1 <= self.number <= ZONE_COUNT:
+            raise ValueError(f"zone number must be between 1 and {ZONE_COUNT}: {self.number}")
+        if self.geodetic_crs not in (GeodeticCrs.JGD2011, GeodeticCrs.TOKYO):
+            raise ValueError(
+                "zones are defined on JGD2011 and Tokyo Datum only, given: "
+                + self.geodetic_crs.label
+            )
+
+    @classmethod
+    def zones(
+        cls, geodetic_crs: GeodeticCrs = GeodeticCrs.JGD2011
+    ) -> tuple[JapanPlaneRectangularZone, ...]:
+        """
+        Return the nineteen zones on a datum.
+
+        Parameters
+        ----------
+        geodetic_crs : GeodeticCrs
+            JGD2011 or Tokyo Datum.
+
+        Returns
+        -------
+        tuple[JapanPlaneRectangularZone, ...]
+            The zones from I to XIX.
+
+        Raises
+        ------
+        ValueError
+            If `geodetic_crs` is neither JGD2011 nor Tokyo Datum.
+        """
+        return tuple(cls(number, geodetic_crs) for number in range(1, ZONE_COUNT + 1))
+
+    @classmethod
+    def from_crs(cls, crs: CRS) -> JapanPlaneRectangularZone | None:
+        """
+        Identify a pyproj CRS as a zone.
+
+        Parameters
+        ----------
+        crs : CRS
+            The CRS to identify.
+
+        Returns
+        -------
+        JapanPlaneRectangularZone | None
+            The zone whose EPSG code the CRS has, or None for any other CRS, including
+            the zones on JGD2000.
+        """
+        epsg = crs.to_epsg()
+        if epsg is None:
+            return None
+        for base, geodetic_crs in (
+            (JGD2011_EPSG_BASE, GeodeticCrs.JGD2011),
+            (TOKYO_EPSG_BASE, GeodeticCrs.TOKYO),
+        ):
+            if 1 <= epsg - base <= ZONE_COUNT:
+                return cls(epsg - base, geodetic_crs)
+        return None
 
     @property
     def epsg(self) -> int:
@@ -57,9 +172,14 @@ class JapanPlaneRectangularZone(IntEnum):
         Returns
         -------
         int
-            The code accepted by `GeoDataFrame.to_crs`.
+            6669 to 6687 on JGD2011 and 30161 to 30179 on Tokyo Datum, from zone I to
+            XIX.
         """
-        return self.value
+        match self.geodetic_crs:
+            case GeodeticCrs.TOKYO:
+                return TOKYO_EPSG_BASE + self.number
+            case _:
+                return JGD2011_EPSG_BASE + self.number
 
     @property
     def crs(self) -> CRS:
@@ -71,31 +191,7 @@ class JapanPlaneRectangularZone(IntEnum):
         CRS
             The CRS of `epsg`.
         """
-        return CRS.from_epsg(self.value)
-
-    @property
-    def geodetic_crs(self) -> GeodeticCrs:
-        """
-        Return the geographic CRS the zones are defined on.
-
-        Returns
-        -------
-        GeodeticCrs
-            JGD2011, for every zone.
-        """
-        return GeodeticCrs.JGD2011
-
-    @property
-    def number(self) -> int:
-        """
-        Return the number of the zone, as in 第IX系.
-
-        Returns
-        -------
-        int
-            The zone number, from 1 to 19.
-        """
-        return self.value - JapanPlaneRectangularZone.ZONE_1.value + 1
+        return CRS.from_epsg(self.epsg)
 
     @property
     def roman_numeral(self) -> str:
@@ -111,30 +207,6 @@ class JapanPlaneRectangularZone(IntEnum):
         units: tuple[str, ...] = ("", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX")
         return tens + units[self.number % 10]
 
-    @classmethod
-    def from_number(cls, number: int) -> JapanPlaneRectangularZone:
-        """
-        Return the zone of a number.
-
-        Parameters
-        ----------
-        number : int
-            The zone number, from 1 to 19.
-
-        Returns
-        -------
-        JapanPlaneRectangularZone
-            The zone.
-
-        Raises
-        ------
-        ValueError
-            If `number` is not between 1 and 19.
-        """
-        if not 1 <= number <= len(cls):
-            raise ValueError(f"zone number must be between 1 and {len(cls)}: {number}")
-        return cls(cls.ZONE_1.value + number - 1)
-
     @property
     def central_meridian(self) -> Angle:
         """
@@ -145,45 +217,15 @@ class JapanPlaneRectangularZone(IntEnum):
         Angle
             The central meridian, along which the scale factor is 0.9999.
         """
-        match self:
-            case JapanPlaneRectangularZone.ZONE_1:
-                return self._east_longitude(129, 30)
-            case JapanPlaneRectangularZone.ZONE_2:
-                return self._east_longitude(131, 0)
-            case JapanPlaneRectangularZone.ZONE_3:
-                return self._east_longitude(132, 10)
-            case JapanPlaneRectangularZone.ZONE_4:
-                return self._east_longitude(133, 30)
-            case JapanPlaneRectangularZone.ZONE_5:
-                return self._east_longitude(134, 20)
-            case JapanPlaneRectangularZone.ZONE_6:
-                return self._east_longitude(136, 0)
-            case JapanPlaneRectangularZone.ZONE_7:
-                return self._east_longitude(137, 10)
-            case JapanPlaneRectangularZone.ZONE_8:
-                return self._east_longitude(138, 30)
-            case JapanPlaneRectangularZone.ZONE_9:
-                return self._east_longitude(139, 50)
-            case JapanPlaneRectangularZone.ZONE_10:
-                return self._east_longitude(140, 50)
-            case JapanPlaneRectangularZone.ZONE_11:
-                return self._east_longitude(140, 15)
-            case JapanPlaneRectangularZone.ZONE_12:
-                return self._east_longitude(142, 15)
-            case JapanPlaneRectangularZone.ZONE_13:
-                return self._east_longitude(144, 15)
-            case JapanPlaneRectangularZone.ZONE_14:
-                return self._east_longitude(142, 0)
-            case JapanPlaneRectangularZone.ZONE_15:
-                return self._east_longitude(127, 30)
-            case JapanPlaneRectangularZone.ZONE_16:
-                return self._east_longitude(124, 0)
-            case JapanPlaneRectangularZone.ZONE_17:
-                return self._east_longitude(131, 0)
-            case JapanPlaneRectangularZone.ZONE_18:
-                return self._east_longitude(136, 0)
-            case JapanPlaneRectangularZone.ZONE_19:
-                return self._east_longitude(154, 0)
+        degrees, minutes = CENTRAL_MERIDIANS[self.number - 1]
+        return Angle.from_degrees_minutes_seconds(
+            DegreesMinutesSeconds(
+                degrees=np.array([float(degrees)]),
+                minutes=np.array([float(minutes)]),
+                seconds=np.zeros(1),
+                is_negative=np.zeros(1, dtype=np.bool_),
+            )
+        )
 
     @property
     def origin_latitude(self) -> Angle:
@@ -195,40 +237,7 @@ class JapanPlaneRectangularZone(IntEnum):
         Angle
             The latitude at which the northing of the zone is zero.
         """
-        match self:
-            case (
-                JapanPlaneRectangularZone.ZONE_1
-                | JapanPlaneRectangularZone.ZONE_2
-                | JapanPlaneRectangularZone.ZONE_4
-            ):
-                return self._degrees(33.0)
-            case (
-                JapanPlaneRectangularZone.ZONE_3
-                | JapanPlaneRectangularZone.ZONE_5
-                | JapanPlaneRectangularZone.ZONE_6
-                | JapanPlaneRectangularZone.ZONE_7
-                | JapanPlaneRectangularZone.ZONE_8
-                | JapanPlaneRectangularZone.ZONE_9
-            ):
-                return self._degrees(36.0)
-            case JapanPlaneRectangularZone.ZONE_10:
-                return self._degrees(40.0)
-            case (
-                JapanPlaneRectangularZone.ZONE_11
-                | JapanPlaneRectangularZone.ZONE_12
-                | JapanPlaneRectangularZone.ZONE_13
-            ):
-                return self._degrees(44.0)
-            case (
-                JapanPlaneRectangularZone.ZONE_14
-                | JapanPlaneRectangularZone.ZONE_15
-                | JapanPlaneRectangularZone.ZONE_16
-                | JapanPlaneRectangularZone.ZONE_17
-                | JapanPlaneRectangularZone.ZONE_19
-            ):
-                return self._degrees(26.0)
-            case JapanPlaneRectangularZone.ZONE_18:
-                return self._degrees(20.0)
+        return Angle(value=np.array([ORIGIN_LATITUDES[self.number - 1]]), unit=AngleUnit.DEGREE)
 
     @property
     def origin(self) -> GeoCoordinate:
@@ -238,12 +247,14 @@ class JapanPlaneRectangularZone(IntEnum):
         Returns
         -------
         GeoCoordinate
-            The point at `origin_latitude` on `central_meridian`.
+            The point at `origin_latitude` on `central_meridian`, on `geodetic_crs`.
         """
         return GeoCoordinate(latitude=self.origin_latitude, longitude=self.central_meridian)
 
     @classmethod
-    def nearest_to(cls, location: GeoCoordinate) -> JapanPlaneRectangularZone:
+    def nearest_to(
+        cls, location: GeoCoordinate, geodetic_crs: GeodeticCrs = GeodeticCrs.JGD2011
+    ) -> JapanPlaneRectangularZone:
         """
         Choose the zone whose origin is nearest to a location.
 
@@ -255,23 +266,34 @@ class JapanPlaneRectangularZone(IntEnum):
         ----------
         location : GeoCoordinate
             The location to measure around, such as the centre of a dataset.
+        geodetic_crs : GeodeticCrs
+            The datum of the zone to choose, JGD2011 or Tokyo Datum.
 
         Returns
         -------
         JapanPlaneRectangularZone
             The zone with the nearest origin; of zones as near, the lowest numbered.
+
+        Raises
+        ------
+        ValueError
+            If `geodetic_crs` is neither JGD2011 nor Tokyo Datum.
         """
-        return min(cls, key=lambda zone: float(location.distance_to(zone.origin).meter[0]))
+        return min(
+            cls.zones(geodetic_crs),
+            key=lambda zone: float(location.distance_to(zone.origin).meter[0]),
+        )
 
     @classmethod
     def is_covering(cls, location: GeoCoordinate) -> bool:
         """
         Tell whether a location lies where some zone is meant to be used.
 
-        Each zone is meant for the area of use its EPSG definition gives, approximated
-        here by the bounding box of that area. The boxes enclose the land of each zone
-        closely, so a location in Korea or Taiwan does not count, and neither may one
-        a few kilometres offshore.
+        Each zone is meant for the area of use its EPSG definition on JGD2011 gives,
+        approximated here by the bounding box of that area. The boxes enclose the land
+        of each zone closely, so a location in Korea or Taiwan does not count, and
+        neither may one a few kilometres offshore. The 400 m between the datums is
+        ignored.
 
         Parameters
         ----------
@@ -285,7 +307,7 @@ class JapanPlaneRectangularZone(IntEnum):
         """
         latitude = float(location.latitude.degree[0])
         longitude = float(location.longitude.degree[0])
-        for zone in cls:
+        for zone in cls.zones():
             area = zone.crs.area_of_use
             if area is None:
                 raise RuntimeError(f"{zone} has no area of use in the EPSG database")
@@ -293,20 +315,5 @@ class JapanPlaneRectangularZone(IntEnum):
                 return True
         return False
 
-    @staticmethod
-    def _degrees(degrees: float) -> Angle:
-        return Angle(value=np.array([degrees]), unit=AngleUnit.DEGREE)
-
-    @staticmethod
-    def _east_longitude(degrees: int, minutes: int) -> Angle:
-        return Angle.from_degrees_minutes_seconds(
-            DegreesMinutesSeconds(
-                degrees=np.array([float(degrees)]),
-                minutes=np.array([float(minutes)]),
-                seconds=np.zeros(1),
-                is_negative=np.zeros(1, dtype=np.bool_),
-            )
-        )
-
     def __str__(self) -> str:
-        return f"EPSG:{self.value}"
+        return f"EPSG:{self.epsg}"

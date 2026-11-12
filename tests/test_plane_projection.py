@@ -16,7 +16,7 @@ from geo_coordinate import (
     WebMercator,
 )
 
-ZONE_9 = JapanPlaneRectangularZone.ZONE_9
+ZONE_9 = JapanPlaneRectangularZone(9)
 
 
 class TestPlaneProjection:
@@ -25,7 +25,7 @@ class TestPlaneProjection:
 
         assert points.easting[0] == pytest.approx(0.0, abs=1e-6)
         assert points.northing[0] == pytest.approx(0.0, abs=1e-6)
-        assert points.crs is ZONE_9
+        assert points.crs == ZONE_9
 
     def test_matches_pyproj(self) -> None:
         places = GeoCoordinates.from_degrees(
@@ -73,6 +73,28 @@ class TestPlaneProjection:
 
         assert 400.0 < on_tokyo.distance_to(on_jgd2011).meter[0] < 500.0
 
+    def test_tokyo_datum_plane_coordinates_round_trip_to_jgd2011(self) -> None:
+        tokyo_zone = JapanPlaneRectangularZone(9, GeodeticCrs.TOKYO)
+        projection = PlaneProjection(tokyo_zone, source=GeodeticCrs.JGD2011)
+        station = GeoCoordinate.from_degrees(35.6812, 139.7671)
+
+        on_tokyo_plane = projection.project(station)
+        on_jgd2011_plane = PlaneProjection(ZONE_9).project(station)
+
+        assert on_tokyo_plane.crs == tokyo_zone
+        assert (
+            400.0
+            < on_tokyo_plane.distance_to(
+                PlaneCoordinates(
+                    easting=on_jgd2011_plane.easting,
+                    northing=on_jgd2011_plane.northing,
+                    crs=tokyo_zone,
+                )
+            ).meter[0]
+            < 500.0
+        )
+        assert projection.unproject(on_tokyo_plane)[0] == station
+
     def test_scale_factor_is_that_of_the_central_meridian_at_the_origin(self) -> None:
         projection = PlaneProjection(ZONE_9)
         east_of_origin = GeoCoordinate.from_degrees(36.0, 141.5)
@@ -111,7 +133,7 @@ class TestPlaneProjection:
 
     def test_rejects_points_of_another_plane(self) -> None:
         points = PlaneCoordinates(
-            easting=np.zeros(1), northing=np.zeros(1), crs=JapanPlaneRectangularZone.ZONE_8
+            easting=np.zeros(1), northing=np.zeros(1), crs=JapanPlaneRectangularZone(8)
         )
         with pytest.raises(ValueError, match="must lie on"):
             PlaneProjection(ZONE_9).unproject(points)
@@ -128,7 +150,7 @@ class TestPlaneCoordinates:
     def test_rejects_distances_across_planes(self) -> None:
         start = PlaneCoordinates(easting=np.zeros(1), northing=np.zeros(1), crs=ZONE_9)
         other = PlaneCoordinates(
-            easting=np.zeros(1), northing=np.zeros(1), crs=JapanPlaneRectangularZone.ZONE_8
+            easting=np.zeros(1), northing=np.zeros(1), crs=JapanPlaneRectangularZone(8)
         )
         with pytest.raises(ValueError, match="same CRS"):
             start.distance_to(other)
